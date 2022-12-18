@@ -1,7 +1,9 @@
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.Byte. Open Scope byte_scope.
 Require Import Coq.ZArith.ZArith. Open Scope Z_scope.
+Require Import Coq.PArith.PArith. Open Scope positive_scope.
 Import IfNotations.
+Require Import BF.Byte.
 Require Import BF.AST.
 
 Inductive ir : Type :=
@@ -24,8 +26,25 @@ Fixpoint ast_lower (a : ast) : ir :=
   | AEnd => IEnd
   end.
 
-Definition byte_add (x y : byte) : byte :=
-  byte_of_ascii (ascii_of_N (Byte.to_N x + Byte.to_N y)).
+Fixpoint ir_raise (i : ir) : ast :=
+  match i with
+  | IMove n i' =>
+      match n with
+      | Z0 => ir_raise i'
+      | Zpos p => ast_cons_repeat ARight (Pos.to_nat p) (ir_raise i')
+      | Zneg p => ast_cons_repeat ALeft (Pos.to_nat p) (ir_raise i')
+      end
+  | IAdd n i' =>
+      match byte_to_Z n with
+      | Z0 => ir_raise i'
+      | Zpos p => ast_cons_repeat AInc (Pos.to_nat p) (ir_raise i')
+      | Zneg p => ast_cons_repeat ADec (Pos.to_nat p) (ir_raise i')
+      end
+  | IOutput i' => AOutput (ir_raise i')
+  | IInput i' => AInput (ir_raise i')
+  | ILoop body i' => ALoop (ir_raise body) (ir_raise i')
+  | IEnd => AEnd
+  end.
 
 Fixpoint ir_combine (i : ir) : ir :=
   match i with

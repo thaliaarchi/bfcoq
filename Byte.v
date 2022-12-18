@@ -1,6 +1,18 @@
-Require Import Coq.Strings.Byte.
+Require Import Coq.Strings.Ascii.
+Require Import Coq.Strings.Byte. Open Scope byte_scope.
+Require Import Coq.ZArith.ZArith. Open Scope Z_scope.
+Require Import Coq.PArith.PArith. Open Scope positive_scope.
 
-Definition succ (b : byte) : byte :=
+Definition byte_to_Z (b : byte) : Z :=
+  match Byte.to_N b with
+  | N0 => Z0
+  | Npos p => if p <? 128 then Zpos p else Zneg (p - 256)
+  end.
+
+Definition byte_add (x y : byte) : byte :=
+  byte_of_ascii (ascii_of_N (Byte.to_N x + Byte.to_N y)).
+
+Definition byte_succ (b : byte) : byte :=
   match b with
 	| x00 => x01 | x01 => x02 | x02 => x03 | x03 => x04 | x04 => x05 | x05 => x06 | x06 => x07 | x07 => x08
   | x08 => x09 | x09 => x0a | x0a => x0b | x0b => x0c | x0c => x0d | x0d => x0e | x0e => x0f | x0f => x10
@@ -36,7 +48,7 @@ Definition succ (b : byte) : byte :=
   | xf8 => xf9 | xf9 => xfa | xfa => xfb | xfb => xfc | xfc => xfd | xfd => xfe | xfe => xff | xff => x00
   end.
 
-Definition pred (b : byte) : byte :=
+Definition byte_pred (b : byte) : byte :=
   match b with
 	| x00 => xff | x01 => x00 | x02 => x01 | x03 => x02 | x04 => x03 | x05 => x04 | x06 => x05 | x07 => x06
   | x08 => x07 | x09 => x08 | x0a => x09 | x0b => x0a | x0c => x0b | x0d => x0c | x0e => x0d | x0f => x0e
@@ -72,7 +84,7 @@ Definition pred (b : byte) : byte :=
   | xf8 => xf7 | xf9 => xf8 | xfa => xf9 | xfb => xfa | xfc => xfb | xfd => xfc | xfe => xfd | xff => xfe
   end.
 
-Definition neg (b : byte) : byte :=
+Definition byte_neg (b : byte) : byte :=
   match b with
 	| x00 => xff | x01 => xfe | x02 => xfd | x03 => xfc | x04 => xfb | x05 => xfa | x06 => xf9 | x07 => xf8
   | x08 => xf7 | x09 => xf6 | x0a => xf5 | x0b => xf4 | x0c => xf3 | x0d => xf2 | x0e => xf1 | x0f => xf0
@@ -108,36 +120,14 @@ Definition neg (b : byte) : byte :=
   | xf8 => x07 | xf9 => x06 | xfa => x05 | xfb => x04 | xfc => x03 | xfd => x02 | xfe => x01 | xff => x00
   end.
 
-Theorem succ_pred : forall b,
-  pred (succ b) = b.
+Theorem byte_succ_pred : forall b,
+  byte_pred (byte_succ b) = b.
 Proof. induction b; reflexivity. Qed.
 
-Theorem pred_succ : forall b,
-  succ (pred b) = b.
+Theorem byte_pred_succ : forall b,
+  byte_succ (byte_pred b) = b.
 Proof. induction b; reflexivity. Qed.
 
-Theorem neg_involutive : forall b,
-  neg (neg b) = b.
-Proof. induction b; reflexivity. Qed.
-
-Fixpoint add_nat (b : byte) (n : nat) : byte :=
-  match n with
-  | O => b
-  | S n' => add_nat (succ b) n'
-  end.
-
-Definition add (b1 b2 : byte) : byte :=
-  add_nat b2 (Byte.to_nat b1).
-
-Fixpoint sub_nat (b : byte) (n : nat) : byte :=
-  match n with
-  | O => b
-  | S n' => sub_nat (pred b) n'
-  end.
-
-Definition sub (b1 b2 : byte) : byte :=
-  sub_nat b2 (Byte.to_nat b1).
-
-Theorem sub_diag : forall b,
-  sub b b = x00.
+Theorem byte_neg_involutive : forall b,
+  byte_neg (byte_neg b) = b.
 Proof. induction b; reflexivity. Qed.

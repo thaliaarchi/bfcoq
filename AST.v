@@ -48,3 +48,9 @@ Fixpoint flatten (a : ast) : list token :=
   | ALoop body a' => THead :: flatten body ++ TTail :: flatten a'
   | AEnd => []
   end.
+
+Fixpoint ast_cons_repeat (node : ast -> ast) (n : nat) (a : ast) : ast :=
+  match n with
+  | O => a
+  | S n' => node (ast_cons_repeat node n' a)
+  end.
