@@ -25,9 +25,6 @@ Inductive vm : Type :=
 
 Definition vm_make (i : list byte) : vm := VM [] x00 [] [] i.
 
-Definition vm_get_cell (v : vm) : byte :=
-  match v with VM _ c _ _ _ => c end.
-
 Definition vm_move_left (v : vm) : option vm :=
   match v with
   | VM (l :: l') x00 [] o i => Some (VM l' l [] o i)

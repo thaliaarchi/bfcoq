@@ -23,15 +23,16 @@ Inductive ir_execute : ir -> vm -> vm -> Prop :=
       vm_move n v = Some v' ->
       ir_execute next v' v'' ->
       ir_execute (IMove n next) v v''
-  | E_IAdd : forall n next l c r o i v'',
-      ir_execute next (VM l (byte_add c n) r o i) v'' ->
-      ir_execute (IAdd n next) (VM l c r o i) v''
-  | E_IOutput : forall next l c r o i v'',
-      ir_execute next (VM l c r (c :: o) i) v'' ->
-      ir_execute (IOutput next) (VM l c r o i) v''
-  | E_IInput : forall next l c r o x i' v'',
-      ir_execute next (VM l x r o i') v'' ->
-      ir_execute (IInput next) (VM l c r o (x :: i')) v''
+  | E_IAdd : forall n next v v'',
+      ir_execute next (vm_add n v) v'' ->
+      ir_execute (IAdd n next) v v''
+  | E_IOutput : forall next v v'',
+      ir_execute next (vm_output v) v'' ->
+      ir_execute (IOutput next) v v''
+  | E_IInput : forall next v v' v'',
+      vm_input v = Some v' ->
+      ir_execute next v' v'' ->
+      ir_execute (IInput next) v v''
   | E_ILoop_0 : forall body next l r o i v',
       ir_execute next (VM l x00 r o i) v' ->
       ir_execute (ILoop body next) (VM l x00 r o i) v'
@@ -90,11 +91,9 @@ Fixpoint ir_combine (i : ir) : ir :=
   end.
 
 Example test_ir_execute : forall a,
-  parse (lex "++>+++[-<++>]<-.") = Some a ->
-  ir_execute (ast_lower a) (vm_make []) (VM [] x07 [] [x07] []).
+  parse (lex ",>+++[-<++>]<-.") = Some a ->
+  ir_execute (ast_lower a) (vm_make [x02]) (VM [] x07 [] [x07] []).
 Proof.
   intros. inversion H; subst; clear H.
-  repeat (constructor ||
-          (eapply E_IMove; [reflexivity |]) ||
-          (eapply E_ILoop; [discriminate | |])).
+  repeat (econstructor || discriminate).
 Qed.
