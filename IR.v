@@ -1,9 +1,13 @@
+Require Import Coq.Lists.List. Import ListNotations.
+Require Import Coq.Strings.String.
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.Byte.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.PArith.PArith.
 Import IfNotations.
 Require Import BF.Byte.
+Require Import BF.VM.
+Require Import BF.Token.
 Require Import BF.AST.
 
 Inductive ir : Type :=
@@ -13,6 +17,31 @@ Inductive ir : Type :=
   | IInput (i : ir)
   | ILoop (body : ir) (i : ir)
   | IEnd.
+
+Inductive ir_execute : ir -> vm -> vm -> Prop :=
+  | E_IMove : forall n next v v' v'',
+      vm_move n v = Some v' ->
+      ir_execute next v' v'' ->
+      ir_execute (IMove n next) v v''
+  | E_IAdd : forall n next l c r o i v'',
+      ir_execute next (VM l (byte_add c n) r o i) v'' ->
+      ir_execute (IAdd n next) (VM l c r o i) v''
+  | E_IOutput : forall next l c r o i v'',
+      ir_execute next (VM l c r (c :: o) i) v'' ->
+      ir_execute (IOutput next) (VM l c r o i) v''
+  | E_IInput : forall next l c r o x i' v'',
+      ir_execute next (VM l x r o i') v'' ->
+      ir_execute (IInput next) (VM l c r o (x :: i')) v''
+  | E_ILoop_0 : forall body next l r o i v',
+      ir_execute next (VM l x00 r o i) v' ->
+      ir_execute (ILoop body next) (VM l x00 r o i) v'
+  | E_ILoop : forall body next l c r o i v' v'',
+      c <> x00 ->
+      ir_execute body (VM l c r o i) v' ->
+      ir_execute (ILoop body next) v' v'' ->
+      ir_execute (ILoop body next) (VM l c r o i) v''
+  | E_IEnd : forall v,
+      ir_execute IEnd v v.
 
 Definition ir_cons_move (n : Z) (i : ir) : ir :=
   match i with
@@ -59,3 +88,13 @@ Fixpoint ir_combine (i : ir) : ir :=
   | ILoop body i' => ILoop (ir_combine body) (ir_combine i')
   | IEnd => IEnd
   end.
+
+Example test_ir_execute : forall a,
+  parse (lex "++>+++[-<++>]<-.") = Some a ->
+  ir_execute (ast_lower a) (vm_make []) (VM [] x07 [] [x07] []).
+Proof.
+  intros. inversion H; subst; clear H.
+  repeat (constructor ||
+          (eapply E_IMove; [reflexivity |]) ||
+          (eapply E_ILoop; [discriminate | |])).
+Qed.
