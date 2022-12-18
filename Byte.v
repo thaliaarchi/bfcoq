@@ -1,12 +1,12 @@
 Require Import Coq.Strings.Ascii.
-Require Import Coq.Strings.Byte. Open Scope byte_scope.
-Require Import Coq.ZArith.ZArith. Open Scope Z_scope.
-Require Import Coq.PArith.PArith. Open Scope positive_scope.
+Require Import Coq.Strings.Byte.
+Require Import Coq.ZArith.ZArith.
+Require Import Coq.PArith.PArith.
 
 Definition byte_to_Z (b : byte) : Z :=
   match Byte.to_N b with
   | N0 => Z0
-  | Npos p => if p <? 128 then Zpos p else Zneg (p - 256)
+  | Npos p => if Pos.ltb p 128 then Zpos p else Zneg (p - 256)
   end.
 
 Definition byte_add (x y : byte) : byte :=

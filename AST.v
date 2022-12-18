@@ -1,4 +1,7 @@
 Require Import Coq.Lists.List. Import ListNotations.
+Require Import Coq.Strings.Byte.
+Require Import Coq.ZArith.ZArith.
+Require Import BF.Byte.
 Require Import BF.Token.
 
 Inductive ast : Type :=
@@ -53,4 +56,18 @@ Fixpoint ast_cons_repeat (node : ast -> ast) (n : nat) (a : ast) : ast :=
   match n with
   | O => a
   | S n' => node (ast_cons_repeat node n' a)
+  end.
+
+Definition ast_cons_move (n : Z) (a : ast) : ast :=
+  match n with
+  | Z0 => a
+  | Zpos p => ast_cons_repeat ARight (Pos.to_nat p) a
+  | Zneg p => ast_cons_repeat ALeft (Pos.to_nat p) a
+  end.
+
+Definition ast_cons_add (n : byte) (a : ast) : ast :=
+  match byte_to_Z n with
+  | Z0 => a
+  | Zpos p => ast_cons_repeat AInc (Pos.to_nat p) a
+  | Zneg p => ast_cons_repeat ADec (Pos.to_nat p) a
   end.

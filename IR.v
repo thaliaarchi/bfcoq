@@ -1,7 +1,7 @@
 Require Import Coq.Strings.Ascii.
-Require Import Coq.Strings.Byte. Open Scope byte_scope.
-Require Import Coq.ZArith.ZArith. Open Scope Z_scope.
-Require Import Coq.PArith.PArith. Open Scope positive_scope.
+Require Import Coq.Strings.Byte.
+Require Import Coq.ZArith.ZArith.
+Require Import Coq.PArith.PArith.
 Import IfNotations.
 Require Import BF.Byte.
 Require Import BF.AST.
@@ -13,6 +13,20 @@ Inductive ir : Type :=
   | IInput (i : ir)
   | ILoop (body : ir) (i : ir)
   | IEnd.
+
+Definition ir_cons_move (n : Z) (i : ir) : ir :=
+  match i with
+  | IMove m i' => if n + m =? 0 then i'
+                  else IMove (n + m) i'
+  | _ => IMove n i
+  end%Z.
+
+Definition ir_cons_add (n : byte) (i : ir) : ir :=
+  match i with
+  | IAdd m i' => if byte_add n m =? x00 then i'
+                 else IAdd (byte_add n m) i'
+  | _ => IAdd n i
+  end%byte.
 
 Fixpoint ast_lower (a : ast) : ir :=
   match a with
@@ -28,18 +42,8 @@ Fixpoint ast_lower (a : ast) : ir :=
 
 Fixpoint ir_raise (i : ir) : ast :=
   match i with
-  | IMove n i' =>
-      match n with
-      | Z0 => ir_raise i'
-      | Zpos p => ast_cons_repeat ARight (Pos.to_nat p) (ir_raise i')
-      | Zneg p => ast_cons_repeat ALeft (Pos.to_nat p) (ir_raise i')
-      end
-  | IAdd n i' =>
-      match byte_to_Z n with
-      | Z0 => ir_raise i'
-      | Zpos p => ast_cons_repeat AInc (Pos.to_nat p) (ir_raise i')
-      | Zneg p => ast_cons_repeat ADec (Pos.to_nat p) (ir_raise i')
-      end
+  | IMove n i' => ast_cons_move n (ir_raise i')
+  | IAdd n i' => ast_cons_add n (ir_raise i')
   | IOutput i' => AOutput (ir_raise i')
   | IInput i' => AInput (ir_raise i')
   | ILoop body i' => ALoop (ir_raise body) (ir_raise i')
@@ -48,12 +52,8 @@ Fixpoint ir_raise (i : ir) : ast :=
 
 Fixpoint ir_combine (i : ir) : ir :=
   match i with
-  | IMove n i' =>
-      let i' := ir_combine i' in
-      if i' is IMove m i'' then IMove (n + m) i'' else IMove n i'
-  | IAdd n i' =>
-      let i' := ir_combine i' in
-      if i' is IAdd m i'' then IAdd (byte_add n m) i'' else IAdd n i'
+  | IMove n i' => ir_cons_move n i'
+  | IAdd n i' => ir_cons_add n i'
   | IOutput i' => IOutput (ir_combine i')
   | IInput i' => IInput (ir_combine i')
   | ILoop body i' => ILoop (ir_combine body) (ir_combine i')
