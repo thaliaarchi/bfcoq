@@ -11,10 +11,10 @@ Inductive ast : Type :=
   | ALoop (body : ast) (a : ast)
   | AEnd.
 
-Fixpoint parse_inner (ts : list token) : ast * list ast :=
+Fixpoint parse' (ts : list token) : ast * list ast :=
   match ts with
   | t :: ts' =>
-      match parse_inner ts' with (body, next) =>
+      match parse' ts' with (body, next) =>
       match t with
       | TRight => (ARight body, next)
       | TLeft => (ALeft body, next)
@@ -32,7 +32,7 @@ Fixpoint parse_inner (ts : list token) : ast * list ast :=
   end.
 
 Definition parse (ts : list token) : option ast :=
-  match parse_inner ts with
+  match parse' ts with
   | (prog, []) => Some prog
   | _ => None
   end.
