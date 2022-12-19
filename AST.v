@@ -18,10 +18,10 @@ Inductive ast : Type :=
 
 Inductive ast_execute : ast -> vm -> vm -> Prop :=
   | E_ARight : forall next v v'',
-      ast_execute next (vm_move_right v) v'' ->
+      ast_execute next (vm_right v) v'' ->
       ast_execute (ARight next) v v''
   | E_ALeft : forall next v v' v'',
-      vm_move_left v = Some v' ->
+      vm_left v = Some v' ->
       ast_execute next v' v'' ->
       ast_execute (ALeft next) v v''
   | E_AInc : forall next v v'',
@@ -86,12 +86,11 @@ Fixpoint flatten (a : ast) : list token :=
   | AEnd => []
   end.
 
-Definition ast_cons_move (n : Z) (a : ast) : ast :=
-  match n with
-  | Z0 => a
-  | Zpos p => repeat_apply ARight (Pos.to_nat p) a
-  | Zneg p => repeat_apply ALeft (Pos.to_nat p) a
-  end.
+Definition ast_cons_right (n : positive) (a : ast) : ast :=
+  repeat_apply ARight (Pos.to_nat n) a.
+
+Definition ast_cons_left (n : positive) (a : ast) : ast :=
+  repeat_apply ALeft (Pos.to_nat n) a.
 
 Definition ast_cons_add (n : byte) (a : ast) : ast :=
   match byte_to_Z n with

@@ -11,7 +11,8 @@ Require Import BF.Token.
 Require Import BF.AST.
 
 Inductive ir : Type :=
-  | IMove (n : Z) (i : ir)
+  | IRight (n : positive) (i : ir)
+  | ILeft (n : positive) (i : ir)
   | IAdd (n : byte) (i : ir)
   | IOutput (i : ir)
   | IInput (i : ir)
@@ -19,10 +20,13 @@ Inductive ir : Type :=
   | IEnd.
 
 Inductive ir_execute : ir -> vm -> vm -> Prop :=
-  | E_IMove : forall n next v v' v'',
-      vm_move n v = Some v' ->
+  | E_IRight : forall n next v v'',
+      ir_execute next (vm_move_right n v) v'' ->
+      ir_execute (IRight n next) v v''
+  | E_ILeft : forall n next v v' v'',
+      vm_move_left n v = Some v' ->
       ir_execute next v' v'' ->
-      ir_execute (IMove n next) v v''
+      ir_execute (ILeft n next) v v''
   | E_IAdd : forall n next v v'',
       ir_execute next (vm_add n v) v'' ->
       ir_execute (IAdd n next) v v''
@@ -44,12 +48,25 @@ Inductive ir_execute : ir -> vm -> vm -> Prop :=
   | E_IEnd : forall v,
       ir_execute IEnd v v.
 
-Definition ir_cons_move (n : Z) (i : ir) : ir :=
+Definition ir_cons_right (n : positive) (i : ir) : ir :=
   match i with
-  | IMove m i' => if n + m =? 0 then i'
-                  else IMove (n + m) i'
-  | _ => IMove n i
-  end%Z.
+  | IRight m i' => IRight (n + m) i'
+  | _ => IRight n i
+  end.
+
+Definition ir_cons_left (n : positive) (i : ir) : ir :=
+  match i with
+  | ILeft m i' => ILeft (n + m) i'
+  | IRight m i' => match n ?= m with
+                   | Eq => i'
+                   | Lt => IRight (m - n) i'
+                   | Gt => match i' with
+                           | ILeft o i'' => ILeft (n - o) i''
+                           | _ => ILeft (n - m) i'
+                           end
+                   end
+  | _ => ILeft n i
+  end%positive.
 
 Definition ir_cons_add (n : byte) (i : ir) : ir :=
   match i with
@@ -60,10 +77,10 @@ Definition ir_cons_add (n : byte) (i : ir) : ir :=
 
 Fixpoint ast_lower (a : ast) : ir :=
   match a with
-  | ARight a' => IMove 1 (ast_lower a')
-  | ALeft a' => IMove (-1) (ast_lower a')
-  | AInc a' => IAdd x01 (ast_lower a')
-  | ADec a' => IAdd xff (ast_lower a')
+  | ARight a' => ir_cons_right 1 (ast_lower a')
+  | ALeft a' => ir_cons_left 1 (ast_lower a')
+  | AInc a' => ir_cons_add x01 (ast_lower a')
+  | ADec a' => ir_cons_add xff (ast_lower a')
   | AOutput a' => IOutput (ast_lower a')
   | AInput a' => IInput (ast_lower a')
   | ALoop body a' => ILoop (ast_lower body) (ast_lower a')
@@ -72,7 +89,8 @@ Fixpoint ast_lower (a : ast) : ir :=
 
 Fixpoint ir_raise (i : ir) : ast :=
   match i with
-  | IMove n i' => ast_cons_move n (ir_raise i')
+  | IRight n i' => ast_cons_right n (ir_raise i')
+  | ILeft n i' => ast_cons_left n (ir_raise i')
   | IAdd n i' => ast_cons_add n (ir_raise i')
   | IOutput i' => AOutput (ir_raise i')
   | IInput i' => AInput (ir_raise i')
@@ -82,7 +100,8 @@ Fixpoint ir_raise (i : ir) : ast :=
 
 Fixpoint ir_combine (i : ir) : ir :=
   match i with
-  | IMove n i' => ir_cons_move n i'
+  | IRight n i' => ir_cons_right n i'
+  | ILeft n i' => ir_cons_left n i'
   | IAdd n i' => ir_cons_add n i'
   | IOutput i' => IOutput (ir_combine i')
   | IInput i' => IInput (ir_combine i')
