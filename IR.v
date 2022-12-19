@@ -2,9 +2,11 @@ Require Import Coq.Lists.List. Import ListNotations.
 Require Import Coq.Strings.String.
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.Byte.
+Require Import Coq.Arith.Arith.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.PArith.PArith.
 Import IfNotations.
+From Coq Require Export Lia.
 Require Import BF.Byte.
 Require Import BF.VM.
 Require Import BF.Token.
@@ -50,20 +52,17 @@ Inductive ir_execute : ir -> vm -> vm -> Prop :=
 
 Definition ir_cons_right (n : positive) (i : ir) : ir :=
   match i with
-  | IRight m i' => IRight (n + m) i'
+  | IRight m i' => IRight (m + n) i'
   | _ => IRight n i
   end.
 
-Definition ir_cons_left (n : positive) (i : ir) : ir :=
+Fixpoint ir_cons_left (n : positive) (i : ir) : ir :=
   match i with
-  | ILeft m i' => ILeft (n + m) i'
+  | ILeft m i' => ILeft (m + n) i'
   | IRight m i' => match n ?= m with
                    | Eq => i'
                    | Lt => IRight (m - n) i'
-                   | Gt => match i' with
-                           | ILeft o i'' => ILeft (n - o) i''
-                           | _ => ILeft (n - m) i'
-                           end
+                   | Gt => ir_cons_left (n - m) i'
                    end
   | _ => ILeft n i
   end%positive.
@@ -71,7 +70,7 @@ Definition ir_cons_left (n : positive) (i : ir) : ir :=
 Definition ir_cons_add (n : byte) (i : ir) : ir :=
   match i with
   | IAdd m i' => if byte_add n m =? x00 then i'
-                 else IAdd (byte_add n m) i'
+                 else IAdd (byte_add m n) i'
   | _ => IAdd n i
   end%byte.
 
@@ -100,9 +99,9 @@ Fixpoint ir_raise (i : ir) : ast :=
 
 Fixpoint ir_combine (i : ir) : ir :=
   match i with
-  | IRight n i' => ir_cons_right n i'
-  | ILeft n i' => ir_cons_left n i'
-  | IAdd n i' => ir_cons_add n i'
+  | IRight n i' => ir_cons_right n (ir_combine i')
+  | ILeft n i' => ir_cons_left n (ir_combine i')
+  | IAdd n i' => ir_cons_add n (ir_combine i')
   | IOutput i' => IOutput (ir_combine i')
   | IInput i' => IInput (ir_combine i')
   | ILoop body i' => ILoop (ir_combine body) (ir_combine i')
@@ -116,3 +115,53 @@ Proof.
   intros. inversion H; subst; clear H.
   repeat (econstructor || discriminate).
 Qed.
+
+Open Scope positive_scope.
+
+Theorem ir_cons_right_left_refl : forall i n,
+  ir_cons_left n (ir_cons_right n i) = i.
+Proof.
+  induction i; intros; cbn;
+  try (rewrite Pos.compare_refl; reflexivity).
+  assert (n0 < n + n0) by lia. rewrite H.
+  f_equal. lia.
+Qed.
+
+Theorem ir_cons_right_right : forall i n m,
+  ir_cons_right m (ir_cons_right n i) = ir_cons_right (n + m) i.
+Proof.
+  induction i; intros; cbn; try reflexivity.
+  f_equal. lia.
+Qed.
+
+Theorem ir_cons_left_left : forall i n m,
+  ir_cons_left m (ir_cons_left n i) = ir_cons_left (n + m) i.
+Proof.
+  induction i; intros; cbn; try (f_equal; lia).
+  destruct (n0 ?= n) eqn:Hcomp1.
+  - rewrite Pos.compare_eq_iff in Hcomp1. subst.
+    assert (n + m > n) by lia. rewrite H.
+    f_equal. lia.
+  - rewrite Pos.compare_lt_iff in Hcomp1.
+    destruct (n0 + m ?= n) eqn:Hcomp2; cbn.
+    + rewrite Pos.compare_eq_iff in Hcomp2. subst.
+      assert (m = n0 + m - n0) by lia. rewrite <- H.
+      rewrite Pos.compare_refl. reflexivity.
+    + rewrite Pos.compare_lt_iff in Hcomp2.
+      assert (m < n - n0) by lia. rewrite H.
+      f_equal. lia.
+    + rewrite Pos.compare_gt_iff in Hcomp2.
+      assert (m > n - n0) by lia. rewrite H.
+      f_equal; lia.
+  - rewrite Pos.compare_gt_iff in Hcomp1.
+    destruct (n0 + m ?= n) eqn:Hcomp2.
+    + rewrite Pos.compare_eq_iff in Hcomp2. subst.
+      apply Pos.lt_not_add_l in Hcomp1. inversion Hcomp1.
+    + rewrite Pos.compare_lt_iff in Hcomp2.
+      apply (Pos.lt_trans (n0 + m) n n0) in Hcomp2.
+      apply Pos.lt_not_add_l in Hcomp2. inversion Hcomp2.
+      assumption.
+    + rewrite IHi. f_equal. lia.
+Qed.
+
+Close Scope positive_scope.
