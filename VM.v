@@ -116,3 +116,19 @@ Proof.
     rewrite vm_right_left_refl. reflexivity. assumption.
     rewrite vm_right_normalize_assoc, <- H. reflexivity.
 Qed.
+
+Theorem vm_move_right_right : forall n m v,
+  vm_move_right m (vm_move_right n v) = vm_move_right (n + m) v.
+Proof.
+  destruct v. unfold vm_move_right. rewrite Pos2Nat.inj_add.
+  induction (Pos.to_nat n); cbn.
+  - reflexivity.
+  - rewrite <- repeat_apply_assoc. rewrite IHn0. reflexivity.
+Qed.
+
+Theorem vm_add_add : forall n m v,
+  vm_add m (vm_add n v) = vm_add (byte_add n m) v.
+Proof.
+  destruct v. cbn.
+  rewrite byte_add_assoc, (byte_add_comm m n). reflexivity.
+Qed.

@@ -12,6 +12,14 @@ Definition byte_to_Z (b : byte) : Z :=
 Definition byte_add (x y : byte) : byte :=
   byte_of_ascii (ascii_of_N (Byte.to_N x + Byte.to_N y)).
 
+Theorem byte_add_comm : forall n m,
+  byte_add n m = byte_add m n.
+Proof. Admitted.
+
+Theorem byte_add_assoc : forall n m p,
+  byte_add n (byte_add m p) = byte_add (byte_add n m) p.
+Proof. Admitted.
+
 Definition byte_succ (b : byte) : byte :=
   match b with
 	| x00 => x01 | x01 => x02 | x02 => x03 | x03 => x04 | x04 => x05 | x05 => x06 | x06 => x07 | x07 => x08

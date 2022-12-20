@@ -50,6 +50,12 @@ Inductive ir_execute : ir -> vm -> vm -> Prop :=
   | E_IEnd : forall v,
       ir_execute IEnd v v.
 
+Definition ir_equiv (i1 i2 : ir) : Prop := forall v v',
+  ir_execute i1 v v' <-> ir_execute i2 v v'.
+
+Definition ir_transform_sound (trans : ir -> ir) : Prop := forall i,
+  ir_equiv i (trans i).
+
 Definition ir_cons_right (n : positive) (i : ir) : ir :=
   match i with
   | IRight m i' => IRight (m + n) i'
@@ -67,12 +73,11 @@ Fixpoint ir_cons_left (n : positive) (i : ir) : ir :=
   | _ => ILeft n i
   end%positive.
 
-Definition ir_cons_add (n : byte) (i : ir) : ir :=
+Fixpoint ir_cons_add (n : byte) (i : ir) : ir :=
   match i with
-  | IAdd m i' => if byte_add n m =? x00 then i'
-                 else IAdd (byte_add m n) i'
+  | IAdd m i' => ir_cons_add (byte_add m n) i'
   | _ => IAdd n i
-  end%byte.
+  end.
 
 Fixpoint ast_lower (a : ast) : ir :=
   match a with
@@ -180,3 +185,66 @@ Proof.
   - eapply E_ILoop. apply H. apply IHast_execute1. apply IHast_execute2.
   - apply E_IEnd.
 Qed.
+
+Theorem ir_execute_cons_right : forall i n v v'',
+  ir_execute (ir_cons_right n i) v v'' <->
+  ir_execute i (vm_move_right n v) v''.
+Proof.
+  split.
+  - induction i; intros;
+    inversion H; subst; try assumption.
+    apply E_IRight.
+    rewrite vm_move_right_right, Pos.add_comm. assumption.
+  - induction i; intros;
+    apply E_IRight; try assumption.
+    inversion H; subst.
+    rewrite vm_move_right_right, Pos.add_comm in H4. assumption.
+Qed.
+
+Theorem ir_execute_cons_left : forall i n v v' v'',
+  vm_move_left n v = Some v' ->
+  ir_execute (ir_cons_left n i) v v'' <->
+  ir_execute i v' v''.
+Proof.
+  split.
+  - induction i; intros; cbn in *.
+    + apply E_IRight. destruct vm_move_left; inversion H; subst.
+Admitted.
+
+Theorem ir_execute_cons_add : forall i n v v'',
+  ir_execute (ir_cons_add n i) v v'' <->
+  ir_execute i (vm_add n v) v''.
+Proof.
+  split;
+  generalize dependent v''; generalize dependent v; generalize dependent n.
+  - induction i; intros;
+    try (inversion H; subst; assumption).
+    apply E_IAdd. rewrite vm_add_add, byte_add_comm. apply IHi, H.
+  - induction i; intros;
+    inversion H; subst; repeat constructor; try assumption.
+    rewrite vm_add_add, byte_add_comm in H4. apply IHi, H4.
+Qed.
+
+Theorem ir_combine_sound :
+  ir_transform_sound ir_combine.
+Proof.
+  unfold ir_transform_sound, ir_equiv.
+  split.
+  - intros. induction H; cbn;
+    try (econstructor; eassumption).
+    + rewrite ir_execute_cons_right; assumption.
+    + rewrite ir_execute_cons_left; eassumption.
+    + rewrite ir_execute_cons_add; assumption.
+  - generalize dependent v'; generalize dependent v.
+    induction i; intros; cbn in *.
+    + rewrite ir_execute_cons_right in H. apply E_IRight, IHi, H.
+    + rewrite ir_execute_cons_left in H. eapply E_ILeft.
+      admit. apply IHi. eassumption. admit.
+    + rewrite ir_execute_cons_add in H. apply E_IAdd, IHi, H.
+    + inversion H; subst. apply E_IOutput, IHi, H1.
+    + inversion H; subst. eapply E_IInput. admit. apply IHi, H2.
+    + inversion H; subst.
+      * apply E_ILoop_0, IHi2, H4.
+      * eapply E_ILoop. assumption. apply IHi1, H3. admit.
+    + assumption.
+Admitted.

@@ -48,6 +48,12 @@ Inductive ast_execute : ast -> vm -> vm -> Prop :=
   | E_AEnd : forall v,
       ast_execute AEnd v v.
 
+Definition ast_equiv (a1 a2 : ast) : Prop := forall v v',
+  ast_execute a1 v v' <-> ast_execute a2 v v'.
+
+Definition ast_transform_sound (trans : ast -> ast) : Prop := forall a,
+  ast_equiv a (trans a).
+
 Fixpoint parse' (ts : list token) : ast * list ast :=
   match ts with
   | t :: ts' =>
