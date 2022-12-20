@@ -69,18 +69,16 @@ Definition token_to_punct (t : token) : punct * punct :=
 
 Fixpoint tokens_of_puncts (ps : list punct) : list token * option punct :=
   match ps with
-  | p1 :: p2 :: ps' => match tokens_of_puncts ps' with
-                       | (ts, p) => (token_of_punct p1 p2 :: ts, p)
-                       end
+  | p1 :: p2 :: ps' => let (ts, p) := tokens_of_puncts ps' in
+                       (token_of_punct p1 p2 :: ts, p)
   | [p] => ([], Some p)
   | [] => ([], None)
   end.
 
 Fixpoint tokens_to_puncts (ts : list token) : list punct :=
   match ts with
-  | t :: ts' => match token_to_punct t with
-                | (p1, p2) => p1 :: p2 :: tokens_to_puncts ts'
-                end
+  | t :: ts' => let (p1, p2) := token_to_punct t in
+                p1 :: p2 :: tokens_to_puncts ts'
   | [] => []
   end.
 

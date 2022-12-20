@@ -51,7 +51,7 @@ Definition transform_sound (trans : ast -> ast) : Prop := forall a,
 Fixpoint parse' (ts : list token) : ast * list ast :=
   match ts with
   | t :: ts' =>
-      match parse' ts' with (body, next) =>
+      let (body, next) := parse' ts' in
       match t with
       | TRight => (ARight body, next)
       | TLeft => (ALeft body, next)
@@ -64,7 +64,7 @@ Fixpoint parse' (ts : list token) : ast * list ast :=
                  | [] => (AEnd, [AEnd]) (* unclosed loop *)
                  end
       | TTail => (AEnd, body :: next)
-      end end
+      end
   | [] => (AEnd, [])
   end.
 

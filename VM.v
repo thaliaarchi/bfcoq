@@ -49,10 +49,10 @@ Definition move_left (n : positive) (v : vm) : option vm :=
   repeat_apply_option shift_left (Pos.to_nat n) v.
 
 Definition add (n : byte) (v : vm) : vm :=
-  match v with VM l c r o i => VM l (Byte.add n c) r o i end.
+  let (l, c, r, o, i) := v in VM l (Byte.add n c) r o i.
 
 Definition output (v : vm) : vm :=
-  match v with VM l c r o i => VM l c r (c :: o) i end.
+  let (l, c, r, o, i) := v in VM l c r (c :: o) i.
 
 Definition input (v : vm) : option vm :=
   match v with
@@ -71,7 +71,7 @@ Fixpoint normalize_tape_right (r : list byte) : list byte :=
   end.
 
 Definition normalize (v : vm) : vm :=
-  match v with VM l c r o i => VM l c (normalize_tape_right r) o i end.
+  let (l, c, r, o, i) := v in VM l c (normalize_tape_right r) o i.
 
 Theorem normalize_idemp : forall v,
   normalize (normalize v) = normalize v.
