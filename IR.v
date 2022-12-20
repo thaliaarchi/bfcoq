@@ -14,7 +14,7 @@ Inductive execute : ir -> vm -> vm -> Prop :=
       execute next (VM.move_right n v) v'' ->
       execute (IRight n next) v v''
   | E_ILeft : forall n next v v' v'',
-      VM.move_left n v = Some v' ->
+      VM.move_left n (Some v) = Some v' ->
       execute next v' v'' ->
       execute (ILeft n next) v v''
   | E_IAdd : forall n next v v'',
@@ -190,7 +190,7 @@ Proof.
 Qed.
 
 Theorem execute_cons_left : forall i n v v' v'',
-  VM.move_left n v = Some v' ->
+  VM.move_left n (Some v) = Some v' ->
   execute (cons_left n i) v v'' <->
   execute i v' v''.
 Proof.

@@ -6,16 +6,39 @@ Fixpoint repeat_apply {A : Type} (f : A -> A) (n : nat) (a : A) : A :=
   | S n' => f (repeat_apply f n' a)
   end.
 
-Fixpoint repeat_apply_option {A : Type} (f : A -> option A) (n : nat) (a : A) : option A :=
-  match n with
-  | O => Some a
-  | S n' => if repeat_apply_option f n' a is Some a' then f a' else None
-  end.
+Definition apply_if_some {A : Type} (f : A -> option A) : option A -> option A :=
+  fun a => if a is Some a' then f a' else None.
 
-Theorem repeat_apply_assoc : forall A f n (a : A),
+Lemma repeat_apply_assoc : forall A f n (a : A),
   f (repeat_apply f n a) = repeat_apply f n (f a).
 Proof.
   induction n; intros.
+  - reflexivity.
+  - cbn. rewrite IHn. reflexivity.
+Qed.
+
+Lemma repeat_apply_add : forall A f n m (a : A),
+  repeat_apply f m (repeat_apply f n a) = repeat_apply f (n + m) a.
+Proof.
+  induction n; intros.
+  - reflexivity.
+  - cbn. rewrite <- repeat_apply_assoc. rewrite IHn. reflexivity.
+Qed.
+
+Lemma repeat_apply_option_add : forall A f m n (a : option A),
+  repeat_apply (apply_if_some f) m (repeat_apply (apply_if_some f) n a)
+  =
+  repeat_apply (apply_if_some f) (n + m) a.
+Proof.
+  induction m; intros.
+  - subst. rewrite Nat.add_0_r. reflexivity.
+  - rewrite <- Nat.add_succ_comm. cbn. rewrite IHm. reflexivity.
+Qed.
+
+Lemma repeat_apply_none : forall (A : Type) (f : A -> option A) n,
+  repeat_apply (apply_if_some f) n None = None.
+Proof.
+  induction n.
   - reflexivity.
   - cbn. rewrite IHn. reflexivity.
 Qed.
@@ -45,8 +68,8 @@ Definition shift_left (v : vm) : option vm :=
 Definition move_right (n : positive) (v : vm) : vm :=
   repeat_apply shift_right (Pos.to_nat n) v.
 
-Definition move_left (n : positive) (v : vm) : option vm :=
-  repeat_apply_option shift_left (Pos.to_nat n) v.
+Definition move_left (n : positive) (v : option vm) : option vm :=
+  repeat_apply (apply_if_some shift_left) (Pos.to_nat n) v.
 
 Definition add (n : byte) (v : vm) : vm :=
   let (l, c, r, o, i) := v in VM l (Byte.add n c) r o i.
@@ -94,8 +117,8 @@ Theorem shift_right_left_refl : forall v,
   v = normalize v ->
   shift_left (shift_right v) = Some v.
 Proof.
-  intros. destruct v. unfold shift_right, shift_left.
-  induction r.
+  unfold shift_right, shift_left.
+  intros. destruct v. induction r.
   - reflexivity.
   - destruct a; try reflexivity.
     destruct r; [discriminate | reflexivity].
@@ -103,23 +126,30 @@ Qed.
 
 Theorem move_right_left_refl : forall n v,
   v = normalize v ->
-  move_left n (move_right n v) = Some v.
+  move_left n (Some (move_right n v)) = Some v.
 Proof.
   unfold move_right, move_left.
   intro n. induction (Pos.to_nat n); intros.
   - reflexivity.
-  - cbn. rewrite repeat_apply_assoc, IHn0.
-    rewrite shift_right_left_refl. reflexivity. assumption.
+  - cbn. rewrite repeat_apply_assoc with (f := shift_right), IHn0.
+    cbn. rewrite shift_right_left_refl. reflexivity. assumption.
     rewrite shift_right_normalize_assoc, <- H. reflexivity.
 Qed.
 
 Theorem move_right_right : forall n m v,
   move_right m (move_right n v) = move_right (n + m) v.
 Proof.
-  destruct v. unfold move_right. rewrite Pos2Nat.inj_add.
-  induction (Pos.to_nat n); cbn.
+  unfold move_right. intros. rewrite Pos2Nat.inj_add.
+  induction (Pos.to_nat n).
   - reflexivity.
-  - rewrite <- repeat_apply_assoc. rewrite IHn0. reflexivity.
+  - cbn. rewrite <- repeat_apply_assoc. rewrite IHn0. reflexivity.
+Qed.
+
+Theorem move_left_left : forall n m v,
+  move_left m (move_left n v) = move_left (n + m) v.
+Proof.
+  unfold move_left; intros. rewrite Pos2Nat.inj_add.
+  apply repeat_apply_option_add.
 Qed.
 
 Theorem add_add : forall n m v,
