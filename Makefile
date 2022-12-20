@@ -45,7 +45,7 @@ HASNATDYNLINK     := $(COQMF_HASNATDYNLINK)
 OCAMLWARN         := $(COQMF_WARN)
 
 Makefile.conf: _CoqProject
-	coq_makefile -f _CoqProject Base.v Byte.v VM.v Token.v AST.v IR.v -o Makefile
+	coq_makefile -f _CoqProject Base.v Byte.v VM.v Token.v Ook.v AST.v IR.v -o Makefile
 
 # This file can be created by the user to hook into double colon rules or
 # add any other Makefile code he may need
