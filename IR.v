@@ -7,6 +7,7 @@ Require Import Coq.ZArith.ZArith.
 Require Import Coq.PArith.PArith.
 Import IfNotations.
 From Coq Require Export Lia.
+Require Import Coq.Program.Equality.
 Require Import BF.Byte.
 Require Import BF.VM.
 Require Import BF.Token.
@@ -76,10 +77,10 @@ Definition ir_cons_add (n : byte) (i : ir) : ir :=
 
 Fixpoint ast_lower (a : ast) : ir :=
   match a with
-  | ARight a' => ir_cons_right 1 (ast_lower a')
-  | ALeft a' => ir_cons_left 1 (ast_lower a')
-  | AInc a' => ir_cons_add x01 (ast_lower a')
-  | ADec a' => ir_cons_add xff (ast_lower a')
+  | ARight a' => IRight 1 (ast_lower a')
+  | ALeft a' => ILeft 1 (ast_lower a')
+  | AInc a' => IAdd x01 (ast_lower a')
+  | ADec a' => IAdd xff (ast_lower a')
   | AOutput a' => IOutput (ast_lower a')
   | AInput a' => IInput (ast_lower a')
   | ALoop body a' => ILoop (ast_lower body) (ast_lower a')
@@ -165,3 +166,23 @@ Proof.
 Qed.
 
 Close Scope positive_scope.
+
+Theorem ast_lower_sound : forall a v v',
+  ast_execute a v v' -> ir_execute (ast_lower a) v v'.
+Proof.
+  induction a; cbn; intros.
+  - inversion H; subst. apply E_IRight, IHa, H1.
+  - inversion H; subst. eapply E_ILeft. eapply H1. apply IHa, H2.
+  - inversion H; subst. apply E_IAdd, IHa, H1.
+  - inversion H; subst. apply E_IAdd, IHa, H1.
+  - inversion H; subst. apply E_IOutput, IHa, H1.
+  - inversion H; subst. eapply E_IInput. eapply H1. apply IHa, H2.
+  - dependent induction H.
+    + apply E_ILoop_0, IHa2, H.
+    + eapply E_ILoop. apply H. apply IHa1, H0.
+      apply IHast_execute2; intros.
+      * apply IHa2, H2.
+      * apply IHa1, H2.
+      * reflexivity.
+  - inversion H; subst. apply E_IEnd.
+Qed.

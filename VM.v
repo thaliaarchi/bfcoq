@@ -16,6 +16,14 @@ Fixpoint repeat_apply_option {A : Type} (f : A -> option A) (n : nat) (a : A) : 
   | S n' => if repeat_apply_option f n' a is Some a' then f a' else None
   end.
 
+Theorem repeat_apply_assoc : forall A f n (a : A),
+  f (repeat_apply f n a) = repeat_apply f n (f a).
+Proof.
+  induction n; intros.
+  - reflexivity.
+  - cbn. rewrite IHn. reflexivity.
+Qed.
+
 Inductive vm : Type :=
   VM (l : list byte) (* cells to the left *)
      (c : byte) (* current cell *)
@@ -52,6 +60,59 @@ Definition vm_output (v : vm) : vm :=
 
 Definition vm_input (v : vm) : option vm :=
   match v with
-  | VM l _ r o (c :: i') => Some (VM l c r o i')
+  | VM l _ r o (i :: i') => Some (VM l i r o i')
   | _ => None
   end.
+
+Fixpoint normalize_tape_right (r : list byte) : list byte :=
+  match r with
+  | [] | [x00] => []
+  | x00 :: r' => match normalize_tape_right r' with
+                 | [] => []
+                 | r'' => x00 :: r''
+                 end
+  | r :: r' => r :: normalize_tape_right r'
+  end.
+
+Definition vm_normalize (v : vm) : vm :=
+  match v with VM l c r o i => VM l c (normalize_tape_right r) o i end.
+
+Theorem vm_normalize_idemp : forall v,
+  vm_normalize (vm_normalize v) = vm_normalize v.
+Proof.
+  destruct v. unfold vm_normalize. f_equal.
+  induction r.
+  - reflexivity.
+  - destruct a; try (cbn; rewrite IHr; reflexivity).
+Admitted.
+
+Theorem vm_right_normalize_assoc : forall v,
+  vm_normalize (vm_right v) = vm_right (vm_normalize v).
+Proof.
+  destruct v. induction r.
+  - reflexivity.
+  - admit.
+Admitted.
+
+Theorem vm_right_left_refl : forall v,
+  v = vm_normalize v ->
+  vm_left (vm_right v) = Some v.
+Proof.
+  intros. destruct v. unfold vm_right, vm_left.
+  induction r.
+  - reflexivity.
+  - destruct a; try reflexivity.
+    destruct r; [discriminate | reflexivity].
+Qed.
+
+Theorem vm_move_right_left_refl : forall n v,
+  v = vm_normalize v ->
+  vm_move_left n (vm_move_right n v) = Some v.
+Proof.
+  unfold vm_move_right, vm_move_left.
+  intro n. induction (Pos.to_nat n); intros.
+  - reflexivity.
+  - cbn. rewrite repeat_apply_assoc, IHn0.
+    rewrite vm_right_left_refl. reflexivity. assumption.
+    rewrite vm_right_normalize_assoc, <- H. reflexivity.
+Qed.
