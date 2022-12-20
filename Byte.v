@@ -1,26 +1,23 @@
-Require Import Coq.Strings.Ascii.
-Require Import Coq.Strings.Byte.
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.PArith.PArith.
+From BF Require Import Base.
 
-Definition byte_to_Z (b : byte) : Z :=
+Definition to_Z (b : byte) : Z :=
   match Byte.to_N b with
   | N0 => Z0
   | Npos p => if Pos.ltb p 128 then Zpos p else Zneg (p - 256)
   end.
 
-Definition byte_add (x y : byte) : byte :=
+Definition add (x y : byte) : byte :=
   byte_of_ascii (ascii_of_N (Byte.to_N x + Byte.to_N y)).
 
-Theorem byte_add_comm : forall n m,
-  byte_add n m = byte_add m n.
+Theorem add_comm : forall n m,
+  add n m = add m n.
 Proof. Admitted.
 
-Theorem byte_add_assoc : forall n m p,
-  byte_add n (byte_add m p) = byte_add (byte_add n m) p.
+Theorem add_assoc : forall n m p,
+  add n (add m p) = add (add n m) p.
 Proof. Admitted.
 
-Definition byte_succ (b : byte) : byte :=
+Definition succ (b : byte) : byte :=
   match b with
 	| x00 => x01 | x01 => x02 | x02 => x03 | x03 => x04 | x04 => x05 | x05 => x06 | x06 => x07 | x07 => x08
   | x08 => x09 | x09 => x0a | x0a => x0b | x0b => x0c | x0c => x0d | x0d => x0e | x0e => x0f | x0f => x10
@@ -56,7 +53,7 @@ Definition byte_succ (b : byte) : byte :=
   | xf8 => xf9 | xf9 => xfa | xfa => xfb | xfb => xfc | xfc => xfd | xfd => xfe | xfe => xff | xff => x00
   end.
 
-Definition byte_pred (b : byte) : byte :=
+Definition pred (b : byte) : byte :=
   match b with
 	| x00 => xff | x01 => x00 | x02 => x01 | x03 => x02 | x04 => x03 | x05 => x04 | x06 => x05 | x07 => x06
   | x08 => x07 | x09 => x08 | x0a => x09 | x0b => x0a | x0c => x0b | x0d => x0c | x0e => x0d | x0f => x0e
@@ -92,7 +89,7 @@ Definition byte_pred (b : byte) : byte :=
   | xf8 => xf7 | xf9 => xf8 | xfa => xf9 | xfb => xfa | xfc => xfb | xfd => xfc | xfe => xfd | xff => xfe
   end.
 
-Definition byte_neg (b : byte) : byte :=
+Definition neg (b : byte) : byte :=
   match b with
 	| x00 => xff | x01 => xfe | x02 => xfd | x03 => xfc | x04 => xfb | x05 => xfa | x06 => xf9 | x07 => xf8
   | x08 => xf7 | x09 => xf6 | x0a => xf5 | x0b => xf4 | x0c => xf3 | x0d => xf2 | x0e => xf1 | x0f => xf0
@@ -128,14 +125,14 @@ Definition byte_neg (b : byte) : byte :=
   | xf8 => x07 | xf9 => x06 | xfa => x05 | xfb => x04 | xfc => x03 | xfd => x02 | xfe => x01 | xff => x00
   end.
 
-Theorem byte_succ_pred : forall b,
-  byte_pred (byte_succ b) = b.
+Theorem succ_pred : forall b,
+  pred (succ b) = b.
 Proof. induction b; reflexivity. Qed.
 
-Theorem byte_pred_succ : forall b,
-  byte_succ (byte_pred b) = b.
+Theorem pred_succ : forall b,
+  succ (pred b) = b.
 Proof. induction b; reflexivity. Qed.
 
-Theorem byte_neg_involutive : forall b,
-  byte_neg (byte_neg b) = b.
+Theorem neg_involutive : forall b,
+  neg (neg b) = b.
 Proof. induction b; reflexivity. Qed.

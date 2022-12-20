@@ -1,8 +1,4 @@
-Require Import Coq.Lists.List. Import ListNotations.
-Require Import Coq.Strings.Byte.
-Require Import Coq.ZArith.ZArith.
-Import IfNotations.
-Require Import BF.Byte.
+From BF Require Import Base Byte.
 
 Fixpoint repeat_apply {A : Type} (f : A -> A) (n : nat) (a : A) : A :=
   match n with
@@ -31,34 +27,34 @@ Inductive vm : Type :=
      (o : list byte) (* outputs *)
      (i : list byte). (* inputs *)
 
-Definition vm_make (i : list byte) : vm := VM [] x00 [] [] i.
+Definition make (i : list byte) : vm := VM [] x00 [] [] i.
 
-Definition vm_right (v : vm) : vm :=
+Definition shift_right (v : vm) : vm :=
   match v with
   | VM l c (r :: r') o i => VM (c :: l) r r' o i
   | VM l c [] o i => VM (c :: l) x00 [] o i
   end.
 
-Definition vm_left (v : vm) : option vm :=
+Definition shift_left (v : vm) : option vm :=
   match v with
   | VM (l :: l') x00 [] o i => Some (VM l' l [] o i)
   | VM (l :: l') c r o i => Some (VM l' l (c :: r) o i)
   | _ => None
   end.
 
-Definition vm_move_right (n : positive) (v : vm) : vm :=
-  repeat_apply vm_right (Pos.to_nat n) v.
+Definition move_right (n : positive) (v : vm) : vm :=
+  repeat_apply shift_right (Pos.to_nat n) v.
 
-Definition vm_move_left (n : positive) (v : vm) : option vm :=
-  repeat_apply_option vm_left (Pos.to_nat n) v.
+Definition move_left (n : positive) (v : vm) : option vm :=
+  repeat_apply_option shift_left (Pos.to_nat n) v.
 
-Definition vm_add (n : byte) (v : vm) : vm :=
-  match v with VM l c r o i => VM l (byte_add n c) r o i end.
+Definition add (n : byte) (v : vm) : vm :=
+  match v with VM l c r o i => VM l (Byte.add n c) r o i end.
 
-Definition vm_output (v : vm) : vm :=
+Definition output (v : vm) : vm :=
   match v with VM l c r o i => VM l c r (c :: o) i end.
 
-Definition vm_input (v : vm) : option vm :=
+Definition input (v : vm) : option vm :=
   match v with
   | VM l _ r o (i :: i') => Some (VM l i r o i')
   | _ => None
@@ -74,61 +70,61 @@ Fixpoint normalize_tape_right (r : list byte) : list byte :=
   | r :: r' => r :: normalize_tape_right r'
   end.
 
-Definition vm_normalize (v : vm) : vm :=
+Definition normalize (v : vm) : vm :=
   match v with VM l c r o i => VM l c (normalize_tape_right r) o i end.
 
-Theorem vm_normalize_idemp : forall v,
-  vm_normalize (vm_normalize v) = vm_normalize v.
+Theorem normalize_idemp : forall v,
+  normalize (normalize v) = normalize v.
 Proof.
-  destruct v. unfold vm_normalize. f_equal.
+  destruct v. unfold normalize. f_equal.
   induction r.
   - reflexivity.
   - destruct a; try (cbn; rewrite IHr; reflexivity).
 Admitted.
 
-Theorem vm_right_normalize_assoc : forall v,
-  vm_normalize (vm_right v) = vm_right (vm_normalize v).
+Theorem shift_right_normalize_assoc : forall v,
+  normalize (shift_right v) = shift_right (normalize v).
 Proof.
   destruct v. induction r.
   - reflexivity.
   - admit.
 Admitted.
 
-Theorem vm_right_left_refl : forall v,
-  v = vm_normalize v ->
-  vm_left (vm_right v) = Some v.
+Theorem shift_right_left_refl : forall v,
+  v = normalize v ->
+  shift_left (shift_right v) = Some v.
 Proof.
-  intros. destruct v. unfold vm_right, vm_left.
+  intros. destruct v. unfold shift_right, shift_left.
   induction r.
   - reflexivity.
   - destruct a; try reflexivity.
     destruct r; [discriminate | reflexivity].
 Qed.
 
-Theorem vm_move_right_left_refl : forall n v,
-  v = vm_normalize v ->
-  vm_move_left n (vm_move_right n v) = Some v.
+Theorem move_right_left_refl : forall n v,
+  v = normalize v ->
+  move_left n (move_right n v) = Some v.
 Proof.
-  unfold vm_move_right, vm_move_left.
+  unfold move_right, move_left.
   intro n. induction (Pos.to_nat n); intros.
   - reflexivity.
   - cbn. rewrite repeat_apply_assoc, IHn0.
-    rewrite vm_right_left_refl. reflexivity. assumption.
-    rewrite vm_right_normalize_assoc, <- H. reflexivity.
+    rewrite shift_right_left_refl. reflexivity. assumption.
+    rewrite shift_right_normalize_assoc, <- H. reflexivity.
 Qed.
 
-Theorem vm_move_right_right : forall n m v,
-  vm_move_right m (vm_move_right n v) = vm_move_right (n + m) v.
+Theorem move_right_right : forall n m v,
+  move_right m (move_right n v) = move_right (n + m) v.
 Proof.
-  destruct v. unfold vm_move_right. rewrite Pos2Nat.inj_add.
+  destruct v. unfold move_right. rewrite Pos2Nat.inj_add.
   induction (Pos.to_nat n); cbn.
   - reflexivity.
   - rewrite <- repeat_apply_assoc. rewrite IHn0. reflexivity.
 Qed.
 
-Theorem vm_add_add : forall n m v,
-  vm_add m (vm_add n v) = vm_add (byte_add n m) v.
+Theorem add_add : forall n m v,
+  add m (add n v) = add (Byte.add n m) v.
 Proof.
   destruct v. cbn.
-  rewrite byte_add_assoc, (byte_add_comm m n). reflexivity.
+  rewrite Byte.add_assoc, (Byte.add_comm m n). reflexivity.
 Qed.

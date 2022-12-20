@@ -1,6 +1,4 @@
-Require Import Coq.Lists.List. Import ListNotations.
-Require Import Coq.Strings.String.
-Require Import Coq.Strings.Ascii.
+From BF Require Import Base.
 
 Inductive token : Type :=
   | TRight (* > *)

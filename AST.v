@@ -1,10 +1,4 @@
-Require Import Coq.Lists.List. Import ListNotations.
-Require Import Coq.Strings.String.
-Require Import Coq.Strings.Byte.
-Require Import Coq.ZArith.ZArith.
-Require Import BF.Byte.
-Require Import BF.VM.
-Require Import BF.Token.
+From BF Require Import Base VM Token.
 
 Inductive ast : Type :=
   | ARight (a : ast)
@@ -16,43 +10,43 @@ Inductive ast : Type :=
   | ALoop (body : ast) (a : ast)
   | AEnd.
 
-Inductive ast_execute : ast -> vm -> vm -> Prop :=
+Inductive execute : ast -> vm -> vm -> Prop :=
   | E_ARight : forall next v v'',
-      ast_execute next (vm_right v) v'' ->
-      ast_execute (ARight next) v v''
+      execute next (VM.shift_right v) v'' ->
+      execute (ARight next) v v''
   | E_ALeft : forall next v v' v'',
-      vm_left v = Some v' ->
-      ast_execute next v' v'' ->
-      ast_execute (ALeft next) v v''
+      VM.shift_left v = Some v' ->
+      execute next v' v'' ->
+      execute (ALeft next) v v''
   | E_AInc : forall next v v'',
-      ast_execute next (vm_add x01 v) v'' ->
-      ast_execute (AInc next) v v''
+      execute next (VM.add x01 v) v'' ->
+      execute (AInc next) v v''
   | E_ADec : forall next v v'',
-      ast_execute next (vm_add xff v) v'' ->
-      ast_execute (ADec next) (v) v''
+      execute next (VM.add xff v) v'' ->
+      execute (ADec next) (v) v''
   | E_AOutput : forall next l c r o i v'',
-      ast_execute next (VM l c r (c :: o) i) v'' ->
-      ast_execute (AOutput next) (VM l c r o i) v''
+      execute next (VM l c r (c :: o) i) v'' ->
+      execute (AOutput next) (VM l c r o i) v''
   | E_AInput : forall next v v' v'',
-      vm_input v = Some v' ->
-      ast_execute next v' v'' ->
-      ast_execute (AInput next) v v''
+      VM.input v = Some v' ->
+      execute next v' v'' ->
+      execute (AInput next) v v''
   | E_ALoop_0 : forall body next l r o i v',
-      ast_execute next (VM l x00 r o i) v' ->
-      ast_execute (ALoop body next) (VM l x00 r o i) v'
+      execute next (VM l x00 r o i) v' ->
+      execute (ALoop body next) (VM l x00 r o i) v'
   | E_ALoop : forall body next l c r o i v' v'',
       c <> x00 ->
-      ast_execute body (VM l c r o i) v' ->
-      ast_execute (ALoop body next) v' v'' ->
-      ast_execute (ALoop body next) (VM l c r o i) v''
+      execute body (VM l c r o i) v' ->
+      execute (ALoop body next) v' v'' ->
+      execute (ALoop body next) (VM l c r o i) v''
   | E_AEnd : forall v,
-      ast_execute AEnd v v.
+      execute AEnd v v.
 
-Definition ast_equiv (a1 a2 : ast) : Prop := forall v v',
-  ast_execute a1 v v' <-> ast_execute a2 v v'.
+Definition equiv (a1 a2 : ast) : Prop := forall v v',
+  execute a1 v v' <-> execute a2 v v'.
 
-Definition ast_transform_sound (trans : ast -> ast) : Prop := forall a,
-  ast_equiv a (trans a).
+Definition transform_sound (trans : ast -> ast) : Prop := forall a,
+  equiv a (trans a).
 
 Fixpoint parse' (ts : list token) : ast * list ast :=
   match ts with
@@ -92,22 +86,22 @@ Fixpoint flatten (a : ast) : list token :=
   | AEnd => []
   end.
 
-Definition ast_cons_right (n : positive) (a : ast) : ast :=
+Definition cons_right (n : positive) (a : ast) : ast :=
   repeat_apply ARight (Pos.to_nat n) a.
 
-Definition ast_cons_left (n : positive) (a : ast) : ast :=
+Definition cons_left (n : positive) (a : ast) : ast :=
   repeat_apply ALeft (Pos.to_nat n) a.
 
-Definition ast_cons_add (n : byte) (a : ast) : ast :=
-  match byte_to_Z n with
+Definition cons_add (n : byte) (a : ast) : ast :=
+  match Byte.to_Z n with
   | Z0 => a
   | Zpos p => repeat_apply AInc (Pos.to_nat p) a
   | Zneg p => repeat_apply ADec (Pos.to_nat p) a
   end.
 
-Example test_ast_execute : forall a,
+Example test_execute : forall a,
   parse (lex ",>+++[-<++>]<-.") = Some a ->
-  ast_execute a (vm_make [x02]) (VM [] x07 [] [x07] []).
+  execute a (VM.make [x02]) (VM [] x07 [] [x07] []).
 Proof.
   intros. inversion H; subst; clear H.
   repeat (econstructor || discriminate).
