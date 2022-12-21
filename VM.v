@@ -55,6 +55,9 @@ Definition move_left (n : positive) (v : option vm) : option vm :=
 Definition add (n : byte) (v : vm) : vm :=
   let (l, c, r, o, i) := v in VM l (Byte.add n c) r o i.
 
+Definition set (n : byte) (v : vm) : vm :=
+  let (l, _, r, o, i) := v in VM l n r o i.
+
 Definition output (v : vm) : vm :=
   let (l, c, r, o, i) := v in VM l c r (c :: o) i.
 
