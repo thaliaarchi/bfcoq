@@ -86,6 +86,15 @@ Fixpoint flatten (a : ast) : list token :=
   | AEnd => []
   end.
 
+Theorem flatten_parse : forall ts a,
+  parse ts = Some a ->
+  flatten a = ts.
+Proof. Admitted.
+
+Theorem parse_flatten : forall a,
+  parse (flatten a) = Some a.
+Proof. Admitted.
+
 Definition cons_right (n : positive) (a : ast) : ast :=
   repeat_apply ARight (Pos.to_nat n) a.
 

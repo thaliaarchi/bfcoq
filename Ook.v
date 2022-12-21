@@ -20,12 +20,6 @@ Definition punct_to_ascii (p : punct) : ascii :=
   | PBang => "!"
   end.
 
-Definition punct_to_string (p : punct) : string :=
-  String "O" (String "o" (String "k" (String (punct_to_ascii p) EmptyString))).
-
-Definition puncts_to_string (ps : list punct) : string :=
-  concat " " (map punct_to_string ps).
-
 Fixpoint lex_puncts (s : string) : list punct :=
   match s with
   | String "O" (String "o" (String "k" (String a s'))) =>
@@ -36,6 +30,25 @@ Fixpoint lex_puncts (s : string) : list punct :=
   | String _ s' => lex_puncts s'
   | EmptyString => []
   end.
+
+Definition punct_to_string (p : punct) : string :=
+  String "O" (String "o" (String "k" (String (punct_to_ascii p) EmptyString))).
+
+Definition puncts_to_string (ps : list punct) : string :=
+  concat " " (map punct_to_string ps).
+
+Theorem punct_of_to_ascii : forall a p,
+  punct_of_ascii a = Some p ->
+  punct_to_ascii p = a.
+Proof.
+  destruct a as [[] [] [] [] [] [] [] []]; intros;
+  try discriminate;
+  inversion H; reflexivity.
+Qed.
+
+Theorem punct_to_of_ascii : forall p,
+  punct_of_ascii (punct_to_ascii p) = Some p.
+Proof. destruct p; reflexivity. Qed.
 
 Inductive token : Type :=
   | OToken (t : Token.token)
@@ -82,8 +95,22 @@ Fixpoint tokens_to_puncts (ts : list token) : list punct :=
   | [] => []
   end.
 
-Definition tokens_to_string (ts : list token) : string :=
-  puncts_to_string (tokens_to_puncts ts).
-
 Definition lex (s : string) : list token * option punct :=
   tokens_of_puncts (lex_puncts s).
+
+Definition to_string (ts : list token) : string :=
+  puncts_to_string (tokens_to_puncts ts).
+
+Theorem tokens_to_of_puncts : forall ps,
+  tokens_of_puncts (tokens_to_puncts ps) = (ps, None).
+Proof. Admitted.
+
+Theorem tokens_of_to_puncts_even : forall ps ts,
+  tokens_of_puncts ps = (ts, None) ->
+  tokens_to_puncts ts = ps.
+Proof. Admitted.
+
+Theorem tokens_of_to_puncts_odd : forall ps ts rem,
+  tokens_of_puncts (ps ++ [rem]) = (ts, Some rem) ->
+  tokens_to_puncts ts = ps.
+Proof. Admitted.
