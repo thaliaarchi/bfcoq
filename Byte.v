@@ -11,7 +11,9 @@ Definition add (x y : byte) : byte :=
 
 Theorem add_comm : forall n m,
   add n m = add m n.
-Proof. Admitted.
+Proof.
+  intros. unfold add. rewrite N.add_comm. reflexivity.
+Qed.
 
 Theorem add_assoc : forall n m p,
   add n (add m p) = add (add n m) p.
@@ -125,14 +127,65 @@ Definition neg (b : byte) : byte :=
   | xf8 => x07 | xf9 => x06 | xfa => x05 | xfb => x04 | xfc => x03 | xfd => x02 | xfe => x01 | xff => x00
   end.
 
-Theorem succ_pred : forall b,
-  pred (succ b) = b.
-Proof. induction b; reflexivity. Qed.
+Definition even (b : byte) : bool :=
+  match b with
+	| x00 | x02 | x04 | x06 | x08 | x0a | x0c | x0e
+  | x10 | x12 | x14 | x16 | x18 | x1a | x1c | x1e
+  | x20 | x22 | x24 | x26 | x28 | x2a | x2c | x2e
+  | x30 | x32 | x34 | x36 | x38 | x3a | x3c | x3e
+  | x40 | x42 | x44 | x46 | x48 | x4a | x4c | x4e
+  | x50 | x52 | x54 | x56 | x58 | x5a | x5c | x5e
+  | x60 | x62 | x64 | x66 | x68 | x6a | x6c | x6e
+  | x70 | x72 | x74 | x76 | x78 | x7a | x7c | x7e
+  | x80 | x82 | x84 | x86 | x88 | x8a | x8c | x8e
+  | x90 | x92 | x94 | x96 | x98 | x9a | x9c | x9e
+  | xa0 | xa2 | xa4 | xa6 | xa8 | xaa | xac | xae
+  | xb0 | xb2 | xb4 | xb6 | xb8 | xba | xbc | xbe
+  | xc0 | xc2 | xc4 | xc6 | xc8 | xca | xcc | xce
+  | xd0 | xd2 | xd4 | xd6 | xd8 | xda | xdc | xde
+  | xe0 | xe2 | xe4 | xe6 | xe8 | xea | xec | xee
+  | xf0 | xf2 | xf4 | xf6 | xf8 | xfa | xfc | xfe => true
+  | _ => false
+  end.
 
-Theorem pred_succ : forall b,
-  succ (pred b) = b.
-Proof. induction b; reflexivity. Qed.
+Definition odd (b : byte) : bool :=
+  match b with
+	| x01 | x03 | x05 | x07 | x09 | x0b | x0d | x0f
+  | x11 | x13 | x15 | x17 | x19 | x1b | x1d | x1f
+  | x21 | x23 | x25 | x27 | x29 | x2b | x2d | x2f
+  | x31 | x33 | x35 | x37 | x39 | x3b | x3d | x3f
+  | x41 | x43 | x45 | x47 | x49 | x4b | x4d | x4f
+  | x51 | x53 | x55 | x57 | x59 | x5b | x5d | x5f
+  | x61 | x63 | x65 | x67 | x69 | x6b | x6d | x6f
+  | x71 | x73 | x75 | x77 | x79 | x7b | x7d | x7f
+  | x81 | x83 | x85 | x87 | x89 | x8b | x8d | x8f
+  | x91 | x93 | x95 | x97 | x99 | x9b | x9d | x9f
+  | xa1 | xa3 | xa5 | xa7 | xa9 | xab | xad | xaf
+  | xb1 | xb3 | xb5 | xb7 | xb9 | xbb | xbd | xbf
+  | xc1 | xc3 | xc5 | xc7 | xc9 | xcb | xcd | xcf
+  | xd1 | xd3 | xd5 | xd7 | xd9 | xdb | xdd | xdf
+  | xe1 | xe3 | xe5 | xe7 | xe9 | xeb | xed | xef
+  | xf1 | xf3 | xf5 | xf7 | xf9 | xfb | xfd | xff => true
+  | _ => false
+  end.
 
-Theorem neg_involutive : forall b,
-  neg (neg b) = b.
-Proof. induction b; reflexivity. Qed.
+Lemma pred_succ : forall b, pred (succ b) = b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma succ_pred : forall b, succ (pred b) = b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma neg_involutive : forall b, neg (neg b) = b.
+  Proof. destruct b; reflexivity. Qed.
+
+Lemma negb_even : forall b, negb (even b) = odd b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma even_succ : forall b, even (succ b) = odd b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma even_pred : forall b, even (pred b) = odd b.
+  Proof. destruct b; reflexivity. Qed.
+
+Lemma negb_odd : forall b, negb (odd b) = even b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma odd_succ : forall b, odd (succ b) = even b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma odd_pred : forall b, odd (pred b) = even b.
+  Proof. destruct b; reflexivity. Qed.
