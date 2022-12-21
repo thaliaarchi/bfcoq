@@ -110,18 +110,26 @@ Proof.
 Qed.
 
 Theorem lower_ast_sound : forall a v v',
-  AST.execute a v v' -> execute (lower_ast a) v v'.
+  AST.execute a v v' <-> execute (lower_ast a) v v'.
 Proof.
-  intros. induction H; cbn.
-  - apply E_IRight, IHexecute.
-  - eapply E_ILeft. apply H. apply IHexecute.
-  - apply E_IAdd, IHexecute.
-  - apply E_IAdd, IHexecute.
-  - apply E_IOutput, IHexecute.
-  - eapply E_IInput. apply H. apply IHexecute.
-  - apply E_ILoop_0, IHexecute.
-  - eapply E_ILoop. apply H. apply IHexecute1. apply IHexecute2.
-  - apply E_IEnd.
+  split.
+  - intros. induction H; cbn; econstructor; eassumption.
+  - generalize dependent v'; generalize dependent v.
+    induction a; cbn; intros.
+    + inversion H; subst. apply E_ARight, IHa. assumption.
+    + inversion H; subst. eapply E_ALeft. eassumption. apply IHa. assumption.
+    + inversion H; subst. apply E_AInc, IHa. assumption.
+    + inversion H; subst. apply E_ADec, IHa. assumption.
+    + inversion H; subst. apply E_AOutput, IHa. assumption.
+    + inversion H; subst. eapply E_AInput, IHa; eassumption.
+    + dependent induction H.
+      * apply E_ALoop_0, IHa2. assumption.
+      * eapply E_ALoop. assumption. apply IHa1. eassumption.
+        apply IHexecute2; intros.
+        -- apply IHa2. assumption.
+        -- apply IHa1. assumption.
+        -- reflexivity.
+    + inversion H; subst. apply E_AEnd.
 Qed.
 
 Theorem cons_right_correct : forall i n v v',

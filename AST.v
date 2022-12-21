@@ -24,9 +24,9 @@ Inductive execute : ast -> vm -> vm -> Prop :=
   | E_ADec : forall next v v'',
       execute next (VM.add xff v) v'' ->
       execute (ADec next) (v) v''
-  | E_AOutput : forall next l c r o i v'',
-      execute next (VM l c r (c :: o) i) v'' ->
-      execute (AOutput next) (VM l c r o i) v''
+  | E_AOutput : forall next v v'',
+      execute next (VM.output v) v'' ->
+      execute (AOutput next) v v''
   | E_AInput : forall next v v' v'',
       VM.input v = Some v' ->
       execute next v' v'' ->
