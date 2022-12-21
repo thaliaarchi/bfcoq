@@ -44,26 +44,26 @@ Definition equiv (i1 i2 : ir) : Prop := forall v v',
 Definition transform_sound (trans : ir -> ir) : Prop := forall i,
   equiv i (trans i).
 
-Definition cons_right (n : positive) (i : ir) : ir :=
+Fixpoint cons_right (n : positive) (i : ir) : ir :=
   match i with
-  | IRight m i' => IRight (m + n) i'
+  | IRight m i' => IRight (n + m) i'
+  | ILeft m i' => match n ?= m with
+                  | Eq => i'
+                  | Lt => ILeft (m - n) i'
+                  | Gt => cons_right (n - m) i'
+                  end
   | _ => IRight n i
-  end.
-
-Fixpoint cons_left (n : positive) (i : ir) : ir :=
-  match i with
-  | ILeft m i' => ILeft (m + n) i'
-  | IRight m i' => match n ?= m with
-                   | Eq => i'
-                   | Lt => IRight (m - n) i'
-                   | Gt => cons_left (n - m) i'
-                   end
-  | _ => ILeft n i
   end%positive.
 
-Fixpoint cons_add (n : byte) (i : ir) : ir :=
+Definition cons_left (n : positive) (i : ir) : ir :=
   match i with
-  | IAdd m i' => cons_add (Byte.add m n) i'
+  | ILeft m i' => ILeft (n + m) i'
+  | _ => ILeft n i
+  end.
+
+Definition cons_add (n : byte) (i : ir) : ir :=
+  match i with
+  | IAdd m i' => IAdd (Byte.add n m) i'
   | _ => IAdd n i
   end.
 
@@ -109,56 +109,6 @@ Proof.
   repeat (econstructor || discriminate).
 Qed.
 
-Open Scope positive_scope.
-
-Theorem cons_right_left_refl : forall i n,
-  cons_left n (cons_right n i) = i.
-Proof.
-  induction i; intros; cbn;
-  try (rewrite Pos.compare_refl; reflexivity).
-  assert (n0 < n + n0) by lia. rewrite H.
-  f_equal. lia.
-Qed.
-
-Theorem cons_right_right : forall i n m,
-  cons_right m (cons_right n i) = cons_right (n + m) i.
-Proof.
-  induction i; intros; cbn; try reflexivity.
-  f_equal. lia.
-Qed.
-
-Theorem cons_left_left : forall i n m,
-  cons_left m (cons_left n i) = cons_left (n + m) i.
-Proof.
-  induction i; intros; cbn; try (f_equal; lia).
-  destruct (n0 ?= n) eqn:Hcomp1.
-  - rewrite Pos.compare_eq_iff in Hcomp1. subst.
-    assert (n + m > n) by lia. rewrite H.
-    f_equal. lia.
-  - rewrite Pos.compare_lt_iff in Hcomp1.
-    destruct (n0 + m ?= n) eqn:Hcomp2; cbn.
-    + rewrite Pos.compare_eq_iff in Hcomp2. subst.
-      assert (m = n0 + m - n0) by lia. rewrite <- H.
-      rewrite Pos.compare_refl. reflexivity.
-    + rewrite Pos.compare_lt_iff in Hcomp2.
-      assert (m < n - n0) by lia. rewrite H.
-      f_equal. lia.
-    + rewrite Pos.compare_gt_iff in Hcomp2.
-      assert (m > n - n0) by lia. rewrite H.
-      f_equal; lia.
-  - rewrite Pos.compare_gt_iff in Hcomp1.
-    destruct (n0 + m ?= n) eqn:Hcomp2.
-    + rewrite Pos.compare_eq_iff in Hcomp2. subst.
-      apply Pos.lt_not_add_l in Hcomp1. inversion Hcomp1.
-    + rewrite Pos.compare_lt_iff in Hcomp2.
-      apply (Pos.lt_trans (n0 + m) n n0) in Hcomp2.
-      apply Pos.lt_not_add_l in Hcomp2. inversion Hcomp2.
-      assumption.
-    + rewrite IHi. f_equal. lia.
-Qed.
-
-Close Scope positive_scope.
-
 Theorem lower_ast_sound : forall a v v',
   AST.execute a v v' -> execute (lower_ast a) v v'.
 Proof.
@@ -174,44 +124,39 @@ Proof.
   - apply E_IEnd.
 Qed.
 
-Theorem execute_cons_right : forall i n v v'',
-  execute (cons_right n i) v v'' <->
-  execute i (VM.move_right n v) v''.
+Theorem cons_right_correct : forall i n v v',
+  execute (cons_right n i) v v' <-> execute (IRight n i) v v'.
 Proof.
   split.
-  - induction i; intros;
-    inversion H; subst; try assumption.
-    apply E_IRight.
-    rewrite VM.move_right_right, Pos.add_comm. assumption.
-  - induction i; intros;
-    apply E_IRight; try assumption.
-    inversion H; subst.
-    rewrite VM.move_right_right, Pos.add_comm in H4. assumption.
-Qed.
-
-Theorem execute_cons_left : forall i n v v' v'',
-  VM.move_left n (Some v) = Some v' ->
-  execute (cons_left n i) v v'' <->
-  execute i v' v''.
-Proof.
-  split.
-  - induction i; intros; cbn in *.
-    + apply E_IRight. destruct VM.move_left; inversion H; subst.
+  - destruct i; cbn; intros.
+    + inversion H; subst. apply E_IRight, E_IRight.
+      rewrite VM.move_right_add. assumption.
+    + destruct (n ?= n0)%positive eqn:Hcomp.
+      * rewrite Pos.compare_eq_iff in Hcomp. subst.
+        eapply E_IRight, E_ILeft. apply VM.move_right_left_refl.
+        admit. assumption.
+      * rewrite Pos.compare_lt_iff in Hcomp.
+        inversion H; subst.
+        eapply E_IRight, E_ILeft. rewrite VM.move_right_left_lt.
+        eassumption. apply Hcomp. assumption.
+      * rewrite Pos.compare_gt_iff in Hcomp.
+        apply E_IRight.
+        destruct i.
+        -- inversion H; subst.
+           eapply E_ILeft. rewrite VM.move_right_left_gt.
 Admitted.
 
-Theorem execute_cons_add : forall i n v v'',
-  execute (cons_add n i) v v'' <->
-  execute i (VM.add n v) v''.
+Theorem cons_left_correct : forall i n v v',
+  execute (cons_left n i) v v' <-> execute (ILeft n i) v v'.
 Proof.
-  split;
-  generalize dependent v''; generalize dependent v; generalize dependent n.
-  - induction i; intros;
-    try (inversion H; subst; assumption).
-    apply E_IAdd. rewrite VM.add_add, Byte.add_comm. apply IHi, H.
-  - induction i; intros;
-    inversion H; subst; repeat constructor; try assumption.
-    rewrite VM.add_add, Byte.add_comm in H4. apply IHi, H4.
-Qed.
+  split.
+  - generalize dependent v'; generalize dependent v; generalize dependent n.
+    destruct i; intros; try assumption.
+Admitted.
+
+Theorem cons_add_correct : forall i n v v',
+  execute (cons_add n i) v v' <-> execute (IAdd n i) v v'.
+Admitted.
 
 Theorem combine_sound :
   transform_sound combine.
@@ -220,19 +165,28 @@ Proof.
   split.
   - intros. induction H; cbn;
     try (econstructor; eassumption).
-    + rewrite execute_cons_right; assumption.
-    + rewrite execute_cons_left; eassumption.
-    + rewrite execute_cons_add; assumption.
+    + rewrite cons_right_correct. apply E_IRight. assumption.
+    + rewrite cons_left_correct. eapply E_ILeft; eassumption.
+    + rewrite cons_add_correct. apply E_IAdd. assumption.
   - generalize dependent v'; generalize dependent v.
     induction i; intros; cbn in *.
-    + rewrite execute_cons_right in H. apply E_IRight, IHi, H.
-    + rewrite execute_cons_left in H. eapply E_ILeft.
-      admit. apply IHi. eassumption. admit.
-    + rewrite execute_cons_add in H. apply E_IAdd, IHi, H.
-    + inversion H; subst. apply E_IOutput, IHi, H1.
-    + inversion H; subst. eapply E_IInput. admit. apply IHi, H2.
-    + inversion H; subst.
-      * apply E_ILoop_0, IHi2, H4.
-      * eapply E_ILoop. assumption. apply IHi1, H3. admit.
+    + rewrite cons_right_correct in H. inversion H; subst.
+      apply E_IRight, IHi. assumption.
+    + rewrite cons_left_correct in H. inversion H; subst.
+      eapply E_ILeft. eassumption. apply IHi. assumption.
+    + rewrite cons_add_correct in H. inversion H; subst.
+      apply E_IAdd, IHi. assumption.
+    + inversion H; subst. constructor. apply IHi. assumption.
+    + inversion H; subst. econstructor. eassumption. apply IHi. assumption.
+    + dependent induction H.
+      * apply E_ILoop_0, IHi2. assumption.
+      * eapply E_ILoop. assumption. apply IHi1. eassumption.
+        apply IHexecute2; try assumption. reflexivity.
     + assumption.
-Admitted.
+Qed.
+
+Theorem lower_ast_combine_sound : forall a v v',
+  AST.execute a v v' -> execute (combine (lower_ast a)) v v'.
+Proof.
+  intros. apply lower_ast_sound, combine_sound in H. assumption.
+Qed.

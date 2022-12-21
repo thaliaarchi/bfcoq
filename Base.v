@@ -8,3 +8,4 @@ Require Export Coq.NArith.NArith.
 Require Export Coq.PArith.PArith.
 Export IfNotations.
 Require Export Coq.micromega.Lia.
+Require Export Coq.Program.Equality.
