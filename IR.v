@@ -143,20 +143,31 @@ Proof.
         apply E_IRight.
         destruct i.
         -- inversion H; subst.
-           eapply E_ILeft. rewrite VM.move_right_left_gt.
+           eapply E_ILeft.
+           rewrite VM.move_right_left_gt. admit. assumption.
+           apply E_IRight.
+           rewrite <- VM.move_right_add in H4. eassumption.
 Admitted.
 
 Theorem cons_left_correct : forall i n v v',
   execute (cons_left n i) v v' <-> execute (ILeft n i) v v'.
 Proof.
   split.
-  - generalize dependent v'; generalize dependent v; generalize dependent n.
-    destruct i; intros; try assumption.
+  - destruct i; cbn; intros; try assumption.
+    inversion H; subst. rewrite <- VM.move_left_add in H2.
 Admitted.
 
 Theorem cons_add_correct : forall i n v v',
   execute (cons_add n i) v v' <-> execute (IAdd n i) v v'.
-Admitted.
+Proof.
+  split.
+  - destruct i; cbn; intros; try assumption.
+    inversion H; subst.
+    apply E_IAdd, E_IAdd. rewrite VM.add_add. assumption.
+  - destruct i; cbn; intros; try assumption.
+    inversion H; inversion H4; subst.
+    apply E_IAdd. rewrite <- VM.add_add. assumption.
+Qed.
 
 Theorem combine_sound :
   transform_sound combine.
