@@ -132,38 +132,57 @@ Proof.
     + inversion H; subst. apply E_AEnd.
 Qed.
 
+Ltac destruct_compare n m :=
+  destruct (n ?= m)%positive eqn:Hcomp;
+  [rewrite Pos.compare_eq_iff in Hcomp; subst
+  | rewrite Pos.compare_lt_iff in Hcomp
+  | rewrite Pos.compare_gt_iff in Hcomp].
+
 Theorem cons_right_correct : forall i n v v',
   execute (cons_right n i) v v' <-> execute (IRight n i) v v'.
 Proof.
-  split.
-  - destruct i; cbn; intros.
-    + inversion H; subst. apply E_IRight, E_IRight.
-      rewrite VM.move_right_add. assumption.
-    + destruct (n ?= n0)%positive eqn:Hcomp.
-      * rewrite Pos.compare_eq_iff in Hcomp. subst.
-        eapply E_IRight, E_ILeft. apply VM.move_right_left_refl.
+  split;
+  generalize dependent v'; generalize dependent v; generalize dependent n.
+  - induction i; cbn; intros; try assumption.
+    + inversion H; subst.
+      apply E_IRight, E_IRight. rewrite VM.move_right_add. assumption.
+    + destruct_compare n0 n.
+      * eapply E_IRight, E_ILeft. apply VM.move_right_left_refl.
         admit. assumption.
-      * rewrite Pos.compare_lt_iff in Hcomp.
-        inversion H; subst.
+      * inversion H; subst.
         eapply E_IRight, E_ILeft. rewrite VM.move_right_left_lt.
-        eassumption. apply Hcomp. assumption.
-      * rewrite Pos.compare_gt_iff in Hcomp.
-        apply E_IRight.
-        destruct i.
-        -- inversion H; subst.
-           eapply E_ILeft.
-           rewrite VM.move_right_left_gt. admit. assumption.
-           apply E_IRight.
-           rewrite <- VM.move_right_add in H4. eassumption.
+        eassumption. admit. apply Hcomp. assumption.
+      * apply IHi in H. inversion H; subst.
+        eapply E_IRight, E_ILeft. apply VM.move_right_left_gt.
+        admit. apply Hcomp. assumption.
+  - induction i; cbn; intros; try assumption;
+    inversion H; inversion H4; subst.
+    + rewrite VM.move_right_add in H9.
+      apply E_IRight. assumption.
+    + destruct_compare n0 n.
+      * rewrite VM.move_right_left_refl in H7. inversion H7; subst.
+        assumption. admit.
+      * rewrite VM.move_right_left_lt in H7.
+        eapply E_ILeft. eassumption. assumption. admit. apply Hcomp.
+      * rewrite VM.move_right_left_gt in H7. inversion H7; subst.
+        apply IHi. apply E_IRight. assumption. admit. assumption.
 Admitted.
 
 Theorem cons_left_correct : forall i n v v',
   execute (cons_left n i) v v' <-> execute (ILeft n i) v v'.
 Proof.
-  split.
+  split;
+  generalize dependent v'; generalize dependent v; generalize dependent n.
   - destruct i; cbn; intros; try assumption.
-    inversion H; subst. rewrite <- VM.move_left_add in H2.
-Admitted.
+    inversion H; subst.
+    rewrite Pos.add_comm, <- VM.move_left_add in H2.
+    apply VM.move_left_split in H2 as [v'1 []].
+    eapply E_ILeft, E_ILeft; eassumption.
+  - destruct i; cbn; intros; try assumption.
+    inversion H; inversion H5; subst.
+    rewrite Pos.add_comm. eapply E_ILeft. rewrite <- VM.move_left_add.
+    rewrite H2. eassumption. assumption.
+Qed.
 
 Theorem cons_add_correct : forall i n v v',
   execute (cons_add n i) v v' <-> execute (IAdd n i) v v'.

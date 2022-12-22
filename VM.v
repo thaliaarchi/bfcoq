@@ -19,7 +19,7 @@ Lemma repeat_apply_add : forall A f n m (a : A),
 Proof.
   induction n; intros; [| cbn; rewrite IHn]; reflexivity. Qed.
 
-Lemma repeat_apply_none : forall (A : Type) (f : A -> option A) n,
+Lemma repeat_apply_none : forall A (f : A -> option A) n,
   repeat_apply (apply_if_some f) n None = None.
 Proof.
   induction n; intros; [| cbn; rewrite IHn]; reflexivity. Qed.
@@ -129,11 +129,13 @@ Proof.
 Qed.
 
 Theorem move_right_left_lt : forall n m v,
+  v = normalize v ->
   (n < m)%positive ->
   move_left m (Some (move_right n v)) = move_left (m - n) (Some v).
 Proof. Admitted.
 
 Theorem move_right_left_gt : forall n m v,
+  v = normalize v ->
   (m < n)%positive ->
   move_left m (Some (move_right n v)) = Some (move_right (n - m) v).
 Proof. Admitted.
@@ -151,6 +153,16 @@ Theorem move_left_combine : forall n m v v' v'',
   move_left (n + m) (Some v) = Some v''.
 Proof.
   intros. rewrite <- move_left_add, H, H0. reflexivity.
+Qed.
+
+Theorem move_left_split : forall n m v v'',
+  move_left n (move_left m (Some v)) = Some v'' ->
+  exists v', move_left m (Some v) = Some v' /\
+             move_left n (Some v') = Some v''.
+Proof.
+  intros. remember (move_left m (Some v)). destruct o.
+  - exists v0. split. reflexivity. assumption.
+  - unfold move_left in H. rewrite repeat_apply_none in H. discriminate.
 Qed.
 
 Theorem add_add : forall n m v,
