@@ -1,24 +1,5 @@
 From BF Require Import Base.
 
-Definition to_Z (b : byte) : Z :=
-  match Byte.to_N b with
-  | N0 => Z0
-  | Npos p => if Pos.ltb p 128 then Zpos p else Zneg (p - 256)
-  end.
-
-Definition add (x y : byte) : byte :=
-  byte_of_ascii (ascii_of_N (Byte.to_N x + Byte.to_N y)).
-
-Theorem add_comm : forall n m,
-  add n m = add m n.
-Proof.
-  intros. unfold add. rewrite N.add_comm. reflexivity.
-Qed.
-
-Theorem add_assoc : forall n m p,
-  add n (add m p) = add (add n m) p.
-Proof. Admitted.
-
 Definition succ (b : byte) : byte :=
   match b with
 	| x00 => x01 | x01 => x02 | x02 => x03 | x03 => x04 | x04 => x05 | x05 => x06 | x06 => x07 | x07 => x08
@@ -93,38 +74,38 @@ Definition pred (b : byte) : byte :=
 
 Definition neg (b : byte) : byte :=
   match b with
-	| x00 => xff | x01 => xfe | x02 => xfd | x03 => xfc | x04 => xfb | x05 => xfa | x06 => xf9 | x07 => xf8
-  | x08 => xf7 | x09 => xf6 | x0a => xf5 | x0b => xf4 | x0c => xf3 | x0d => xf2 | x0e => xf1 | x0f => xf0
-  | x10 => xef | x11 => xee | x12 => xed | x13 => xec | x14 => xeb | x15 => xea | x16 => xe9 | x17 => xe8
-  | x18 => xe7 | x19 => xe6 | x1a => xe5 | x1b => xe4 | x1c => xe3 | x1d => xe2 | x1e => xe1 | x1f => xe0
-  | x20 => xdf | x21 => xde | x22 => xdd | x23 => xdc | x24 => xdb | x25 => xda | x26 => xd9 | x27 => xd8
-  | x28 => xd7 | x29 => xd6 | x2a => xd5 | x2b => xd4 | x2c => xd3 | x2d => xd2 | x2e => xd1 | x2f => xd0
-  | x30 => xcf | x31 => xce | x32 => xcd | x33 => xcc | x34 => xcb | x35 => xca | x36 => xc9 | x37 => xc8
-  | x38 => xc7 | x39 => xc6 | x3a => xc5 | x3b => xc4 | x3c => xc3 | x3d => xc2 | x3e => xc1 | x3f => xc0
-  | x40 => xbf | x41 => xbe | x42 => xbd | x43 => xbc | x44 => xbb | x45 => xba | x46 => xb9 | x47 => xb8
-  | x48 => xb7 | x49 => xb6 | x4a => xb5 | x4b => xb4 | x4c => xb3 | x4d => xb2 | x4e => xb1 | x4f => xb0
-  | x50 => xaf | x51 => xae | x52 => xad | x53 => xac | x54 => xab | x55 => xaa | x56 => xa9 | x57 => xa8
-  | x58 => xa7 | x59 => xa6 | x5a => xa5 | x5b => xa4 | x5c => xa3 | x5d => xa2 | x5e => xa1 | x5f => xa0
-  | x60 => x9f | x61 => x9e | x62 => x9d | x63 => x9c | x64 => x9b | x65 => x9a | x66 => x99 | x67 => x98
-  | x68 => x97 | x69 => x96 | x6a => x95 | x6b => x94 | x6c => x93 | x6d => x92 | x6e => x91 | x6f => x90
-  | x70 => x8f | x71 => x8e | x72 => x8d | x73 => x8c | x74 => x8b | x75 => x8a | x76 => x89 | x77 => x88
-  | x78 => x87 | x79 => x86 | x7a => x85 | x7b => x84 | x7c => x83 | x7d => x82 | x7e => x81 | x7f => x80
-  | x80 => x7f | x81 => x7e | x82 => x7d | x83 => x7c | x84 => x7b | x85 => x7a | x86 => x79 | x87 => x78
-  | x88 => x77 | x89 => x76 | x8a => x75 | x8b => x74 | x8c => x73 | x8d => x72 | x8e => x71 | x8f => x70
-  | x90 => x6f | x91 => x6e | x92 => x6d | x93 => x6c | x94 => x6b | x95 => x6a | x96 => x69 | x97 => x68
-  | x98 => x67 | x99 => x66 | x9a => x65 | x9b => x64 | x9c => x63 | x9d => x62 | x9e => x61 | x9f => x60
-  | xa0 => x5f | xa1 => x5e | xa2 => x5d | xa3 => x5c | xa4 => x5b | xa5 => x5a | xa6 => x59 | xa7 => x58
-  | xa8 => x57 | xa9 => x56 | xaa => x55 | xab => x54 | xac => x53 | xad => x52 | xae => x51 | xaf => x50
-  | xb0 => x4f | xb1 => x4e | xb2 => x4d | xb3 => x4c | xb4 => x4b | xb5 => x4a | xb6 => x49 | xb7 => x48
-  | xb8 => x47 | xb9 => x46 | xba => x45 | xbb => x44 | xbc => x43 | xbd => x42 | xbe => x41 | xbf => x40
-  | xc0 => x3f | xc1 => x3e | xc2 => x3d | xc3 => x3c | xc4 => x3b | xc5 => x3a | xc6 => x39 | xc7 => x38
-  | xc8 => x37 | xc9 => x36 | xca => x35 | xcb => x34 | xcc => x33 | xcd => x32 | xce => x31 | xcf => x30
-  | xd0 => x2f | xd1 => x2e | xd2 => x2d | xd3 => x2c | xd4 => x2b | xd5 => x2a | xd6 => x29 | xd7 => x28
-  | xd8 => x27 | xd9 => x26 | xda => x25 | xdb => x24 | xdc => x23 | xdd => x22 | xde => x21 | xdf => x20
-  | xe0 => x1f | xe1 => x1e | xe2 => x1d | xe3 => x1c | xe4 => x1b | xe5 => x1a | xe6 => x19 | xe7 => x18
-  | xe8 => x17 | xe9 => x16 | xea => x15 | xeb => x14 | xec => x13 | xed => x12 | xee => x11 | xef => x10
-  | xf0 => x0f | xf1 => x0e | xf2 => x0d | xf3 => x0c | xf4 => x0b | xf5 => x0a | xf6 => x09 | xf7 => x08
-  | xf8 => x07 | xf9 => x06 | xfa => x05 | xfb => x04 | xfc => x03 | xfd => x02 | xfe => x01 | xff => x00
+	| x00 => x00 | x01 => xff | x02 => xfe | x03 => xfd | x04 => xfc | x05 => xfb | x06 => xfa | x07 => xf9
+  | x08 => xf8 | x09 => xf7 | x0a => xf6 | x0b => xf5 | x0c => xf4 | x0d => xf3 | x0e => xf2 | x0f => xf1
+  | x10 => xf0 | x11 => xef | x12 => xee | x13 => xed | x14 => xec | x15 => xeb | x16 => xea | x17 => xe9
+  | x18 => xe8 | x19 => xe7 | x1a => xe6 | x1b => xe5 | x1c => xe4 | x1d => xe3 | x1e => xe2 | x1f => xe1
+  | x20 => xe0 | x21 => xdf | x22 => xde | x23 => xdd | x24 => xdc | x25 => xdb | x26 => xda | x27 => xd9
+  | x28 => xd8 | x29 => xd7 | x2a => xd6 | x2b => xd5 | x2c => xd4 | x2d => xd3 | x2e => xd2 | x2f => xd1
+  | x30 => xd0 | x31 => xcf | x32 => xce | x33 => xcd | x34 => xcc | x35 => xcb | x36 => xca | x37 => xc9
+  | x38 => xc8 | x39 => xc7 | x3a => xc6 | x3b => xc5 | x3c => xc4 | x3d => xc3 | x3e => xc2 | x3f => xc1
+  | x40 => xc0 | x41 => xbf | x42 => xbe | x43 => xbd | x44 => xbc | x45 => xbb | x46 => xba | x47 => xb9
+  | x48 => xb8 | x49 => xb7 | x4a => xb6 | x4b => xb5 | x4c => xb4 | x4d => xb3 | x4e => xb2 | x4f => xb1
+  | x50 => xb0 | x51 => xaf | x52 => xae | x53 => xad | x54 => xac | x55 => xab | x56 => xaa | x57 => xa9
+  | x58 => xa8 | x59 => xa7 | x5a => xa6 | x5b => xa5 | x5c => xa4 | x5d => xa3 | x5e => xa2 | x5f => xa1
+  | x60 => xa0 | x61 => x9f | x62 => x9e | x63 => x9d | x64 => x9c | x65 => x9b | x66 => x9a | x67 => x99
+  | x68 => x98 | x69 => x97 | x6a => x96 | x6b => x95 | x6c => x94 | x6d => x93 | x6e => x92 | x6f => x91
+  | x70 => x90 | x71 => x8f | x72 => x8e | x73 => x8d | x74 => x8c | x75 => x8b | x76 => x8a | x77 => x89
+  | x78 => x88 | x79 => x87 | x7a => x86 | x7b => x85 | x7c => x84 | x7d => x83 | x7e => x82 | x7f => x81
+  | x80 => x80 | x81 => x7f | x82 => x7e | x83 => x7d | x84 => x7c | x85 => x7b | x86 => x7a | x87 => x79
+  | x88 => x78 | x89 => x77 | x8a => x76 | x8b => x75 | x8c => x74 | x8d => x73 | x8e => x72 | x8f => x71
+  | x90 => x70 | x91 => x6f | x92 => x6e | x93 => x6d | x94 => x6c | x95 => x6b | x96 => x6a | x97 => x69
+  | x98 => x68 | x99 => x67 | x9a => x66 | x9b => x65 | x9c => x64 | x9d => x63 | x9e => x62 | x9f => x61
+  | xa0 => x60 | xa1 => x5f | xa2 => x5e | xa3 => x5d | xa4 => x5c | xa5 => x5b | xa6 => x5a | xa7 => x59
+  | xa8 => x58 | xa9 => x57 | xaa => x56 | xab => x55 | xac => x54 | xad => x53 | xae => x52 | xaf => x51
+  | xb0 => x50 | xb1 => x4f | xb2 => x4e | xb3 => x4d | xb4 => x4c | xb5 => x4b | xb6 => x4a | xb7 => x49
+  | xb8 => x48 | xb9 => x47 | xba => x46 | xbb => x45 | xbc => x44 | xbd => x43 | xbe => x42 | xbf => x41
+  | xc0 => x40 | xc1 => x3f | xc2 => x3e | xc3 => x3d | xc4 => x3c | xc5 => x3b | xc6 => x3a | xc7 => x39
+  | xc8 => x38 | xc9 => x37 | xca => x36 | xcb => x35 | xcc => x34 | xcd => x33 | xce => x32 | xcf => x31
+  | xd0 => x30 | xd1 => x2f | xd2 => x2e | xd3 => x2d | xd4 => x2c | xd5 => x2b | xd6 => x2a | xd7 => x29
+  | xd8 => x28 | xd9 => x27 | xda => x26 | xdb => x25 | xdc => x24 | xdd => x23 | xde => x22 | xdf => x21
+  | xe0 => x20 | xe1 => x1f | xe2 => x1e | xe3 => x1d | xe4 => x1c | xe5 => x1b | xe6 => x1a | xe7 => x19
+  | xe8 => x18 | xe9 => x17 | xea => x16 | xeb => x15 | xec => x14 | xed => x13 | xee => x12 | xef => x11
+  | xf0 => x10 | xf1 => x0f | xf2 => x0e | xf3 => x0d | xf4 => x0c | xf5 => x0b | xf6 => x0a | xf7 => x09
+  | xf8 => x08 | xf9 => x07 | xfa => x06 | xfb => x05 | xfc => x04 | xfd => x03 | xfe => x02 | xff => x01
   end.
 
 Definition even (b : byte) : bool :=
@@ -168,6 +149,51 @@ Definition odd (b : byte) : bool :=
   | xf1 | xf3 | xf5 | xf7 | xf9 | xfb | xfd | xff => true
   | _ => false
   end.
+
+Definition of_N (n : N) : byte := byte_of_ascii (ascii_of_N n).
+
+Definition to_Z (b : byte) : Z :=
+  match Byte.to_N b with
+  | N0 => Z0
+  | Npos p => if Pos.ltb p 128 then Zpos p else Zneg (p - 256)
+  end.
+
+Theorem to_of_N : forall b,
+  of_N (to_N b) = b.
+Proof. intros. destruct b; reflexivity. Qed.
+
+Definition add (x y : byte) : byte := of_N (to_N x + to_N y).
+
+Definition sub (x y : byte) : byte := add x (neg y).
+
+Definition mul (x y : byte) : byte := of_N (to_N x * to_N y).
+
+Theorem add_comm : forall n m,
+  add n m = add m n.
+Proof. intros. unfold add. rewrite N.add_comm. reflexivity. Qed.
+
+Theorem add_assoc : forall n m p,
+  add n (add m p) = add (add n m) p.
+Admitted.
+
+Lemma add_0_l : forall b, add x00 b = b.
+  Proof. destruct b; reflexivity. Qed.
+Lemma add_0_r : forall b, add b x00 = b.
+  Proof. intros. rewrite add_comm. apply add_0_l. Qed.
+Lemma succ_add_1 : forall b, succ b = add b x01.
+  Proof. destruct b; reflexivity. Qed.
+Lemma pred_sub_1 : forall b, pred b = sub b x01.
+  Proof. destruct b; reflexivity. Qed.
+Lemma neg_sub : forall b, neg b = sub x00 b.
+  Proof. destruct b; reflexivity. Qed.
+
+Theorem add_succ_pred : forall x y,
+  add x y = add (succ x) (pred y).
+Proof.
+  intros. rewrite succ_add_1, pred_sub_1. unfold sub. cbn.
+  rewrite <- add_assoc, (add_comm y xff), (add_assoc x01 xff y), add_0_l.
+  reflexivity.
+Qed.
 
 Lemma pred_succ : forall b, pred (succ b) = b.
   Proof. destruct b; reflexivity. Qed.
