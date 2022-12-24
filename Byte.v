@@ -3,6 +3,9 @@ Require Import compcert.lib.Integers.
 
 Definition byte := Integers.byte.
 
+Definition even (b : byte) : bool := Z.even (Integers.Byte.unsigned b).
+Definition odd (b : byte) : bool := Z.odd (Integers.Byte.unsigned b).
+
 Declare Scope byte_scope.
 Delimit Scope byte_scope with byte.
 Open Scope byte_scope.
@@ -13,8 +16,8 @@ Notation "x * y" := (Integers.Byte.mul x y) (at level 40, left associativity) : 
 Notation "x =? y" := (Integers.Byte.eq x y) (at level 70) : byte_scope.
 Notation "x <? y" := (Integers.Byte.lt x y) (at level 70) : byte_scope.
 
-Notation "#00" := Integers.Byte.zero : byte_scope.
-Notation "#01" := Integers.Byte.one : byte_scope.
+Notation "#00" := (Integers.Byte.repr 0%Z) : byte_scope.
+Notation "#01" := (Integers.Byte.repr 1%Z) : byte_scope.
 Notation "#02" := (Integers.Byte.repr 2%Z) : byte_scope.
 Notation "#03" := (Integers.Byte.repr 3%Z) : byte_scope.
 Notation "#04" := (Integers.Byte.repr 4%Z) : byte_scope.

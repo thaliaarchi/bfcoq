@@ -1,4 +1,4 @@
-From BF Require Import Base VM IR.
+From BF Require Import Base Byte VM IR.
 
 Inductive mir : Type :=
   | MRight (n : positive) (m : mir)
@@ -11,34 +11,35 @@ Inductive mir : Type :=
   | MEnd.
 
 Inductive execute : mir -> vm -> vm -> Prop :=
-  | E_MRight : forall n next v v'',
-      execute next (VM.move_right n v) v'' ->
-      execute (MRight n next) v v''
-  | E_MLeft : forall n next v v' v'',
+  | E_MRight : forall n m v v'',
+      execute m (VM.move_right n v) v'' ->
+      execute (MRight n m) v v''
+  | E_MLeft : forall n m v v' v'',
       VM.move_left n (Some v) = Some v' ->
-      execute next v' v'' ->
-      execute (MLeft n next) v v''
-  | E_MAdd : forall n next v v'',
-      execute next (VM.add n v) v'' ->
-      execute (MAdd n next) v v''
-  | E_MConst : forall n next v v'',
-      execute next (VM.set n v) v'' ->
-      execute (MConst n next) v v''
-  | E_MOutput : forall next v v'',
-      execute next (VM.output v) v'' ->
-      execute (MOutput next) v v''
-  | E_MInput : forall next v v' v'',
+      execute m v' v'' ->
+      execute (MLeft n m) v v''
+  | E_MAdd : forall n m v v'',
+      execute m (VM.add_cell n v) v'' ->
+      execute (MAdd n m) v v''
+  | E_MConst : forall n m v v'',
+      execute m (VM.set_cell n v) v'' ->
+      execute (MConst n m) v v''
+  | E_MOutput : forall m v v'',
+      execute m (VM.output v) v'' ->
+      execute (MOutput m) v v''
+  | E_MInput : forall m v v' v'',
       VM.input v = Some v' ->
-      execute next v' v'' ->
-      execute (MInput next) v v''
-  | E_MLoop_0 : forall body next l r o i v',
-      execute next (VM l x00 r o i) v' ->
-      execute (MLoop body next) (VM l x00 r o i) v'
-  | E_MLoop : forall body next l c r o i v' v'',
-      c <> x00 ->
-      execute body (VM l c r o i) v' ->
-      execute (MLoop body next) v' v'' ->
-      execute (MLoop body next) (VM l c r o i) v''
+      execute m v' v'' ->
+      execute (MInput m) v v''
+  | E_MLoop : forall body m v v' v'',
+      VM.get_cell v =? #00 = false ->
+      execute body v v' ->
+      execute (MLoop body m) v' v'' ->
+      execute (MLoop body m) v v''
+  | E_MLoop_0 : forall body m v v',
+      VM.get_cell v =? #00 = true ->
+      execute m v v' ->
+      execute (MLoop body m) v v'
   | E_MEnd : forall v,
       execute MEnd v v.
 
@@ -57,7 +58,7 @@ Fixpoint lower_ir (i : ir) : mir :=
   | IInput i' => MInput (lower_ir i')
   | ILoop body i' =>
       match body with
-      | IAdd n IEnd => if Byte.odd n then MConst x00 (lower_ir i')
+      | IAdd n IEnd => if Byte.odd n then MConst #00 (lower_ir i')
                        else MLoop (lower_ir body) (lower_ir i')
       | _ => MLoop (lower_ir body) (lower_ir i')
       end
@@ -74,4 +75,6 @@ Proof.
     + inversion H; subst. constructor. apply IHi. assumption.
     + inversion H; subst. econstructor. eassumption. apply IHi. assumption.
     + inversion H; subst. constructor. apply IHi. assumption.
+    + inversion H; subst. constructor. apply IHi. assumption.
+    + inversion H; subst. econstructor. eassumption. apply IHi. assumption.
 Admitted.

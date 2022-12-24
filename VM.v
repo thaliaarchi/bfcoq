@@ -31,17 +31,16 @@ Inductive vm : Type :=
      (o : list byte) (* outputs *)
      (i : list byte). (* inputs *)
 
-Definition make (i : list byte) : vm := VM [] x00 [] [] i.
+Definition make (i : list byte) : vm := VM [] #00 [] [] i.
 
 Definition shift_right (v : vm) : vm :=
   match v with
   | VM l c (r :: r') o i => VM (c :: l) r r' o i
-  | VM l c [] o i => VM (c :: l) x00 [] o i
+  | VM l c [] o i => VM (c :: l) #00 [] o i
   end.
 
 Definition shift_left (v : vm) : option vm :=
   match v with
-  | VM (l :: l') x00 [] o i => Some (VM l' l [] o i)
   | VM (l :: l') c r o i => Some (VM l' l (c :: r) o i)
   | _ => None
   end.
@@ -52,11 +51,14 @@ Definition move_right (n : positive) (v : vm) : vm :=
 Definition move_left (n : positive) (v : option vm) : option vm :=
   repeat_apply (apply_if_some shift_left) (Pos.to_nat n) v.
 
-Definition add (n : byte) (v : vm) : vm :=
-  let (l, c, r, o, i) := v in VM l (Byte.add n c) r o i.
+Definition get_cell (v : vm) : byte :=
+  let (_, c, _, _, _) := v in c.
 
-Definition set (n : byte) (v : vm) : vm :=
+Definition set_cell (n : byte) (v : vm) : vm :=
   let (l, _, r, o, i) := v in VM l n r o i.
+
+Definition add_cell (n : byte) (v : vm) : vm :=
+  let (l, c, r, o, i) := v in VM l (c + n) r o i.
 
 Definition output (v : vm) : vm :=
   let (l, c, r, o, i) := v in VM l c r (c :: o) i.
@@ -69,43 +71,42 @@ Definition input (v : vm) : option vm :=
 
 Fixpoint normalize_tape_right (r : list byte) : list byte :=
   match r with
-  | [] | [x00] => []
-  | x00 :: r' => match normalize_tape_right r' with
-                 | [] => []
-                 | r'' => x00 :: r''
-                 end
-  | r :: r' => r :: normalize_tape_right r'
+  | [] => []
+  | r0 :: r' => match normalize_tape_right r' with
+                | [] => if r0 =? #00 then [] else [r0]
+                | r'' => r0 :: r''
+                end
   end.
 
 Definition normalize (v : vm) : vm :=
   let (l, c, r, o, i) := v in VM l c (normalize_tape_right r) o i.
 
+Fixpoint all_0 (bs : list byte) : bool :=
+  match bs with
+  | [] => true
+  | b :: bs' => (b =? #00) && all_0 bs'
+  end.
+
+Fixpoint eq_tape_right (r1 r2 : list byte) : bool :=
+  match r1, r2 with
+  | [], [] => true
+  | x :: r1', y :: r2' => (x =? y) && eq_tape_right r1' r2'
+  | r1, [] => all_0 r1
+  | [], r2 => all_0 r2
+  end.
+
 Theorem normalize_idemp : forall v,
   normalize (normalize v) = normalize v.
-Proof.
-  destruct v. unfold normalize. f_equal.
-  induction r.
-  - reflexivity.
-Admitted.
+Proof. Admitted.
 
 Theorem shift_right_normalize_assoc : forall v,
   normalize (shift_right v) = shift_right (normalize v).
-Proof.
-  destruct v. induction r.
-  - reflexivity.
-  - admit.
-Admitted.
+Proof. Admitted.
 
 Theorem shift_right_left_refl : forall v,
   v = normalize v ->
   shift_left (shift_right v) = Some v.
-Proof.
-  unfold shift_right, shift_left.
-  intros. destruct v. induction r.
-  - reflexivity.
-  - destruct a; try reflexivity.
-    destruct r; [discriminate | reflexivity].
-Qed.
+Proof. Admitted.
 
 Theorem move_right_add : forall n m v,
   move_right m (move_right n v) = move_right (n + m) v.
@@ -166,8 +167,8 @@ Proof.
 Qed.
 
 Theorem add_add : forall n m v,
-  add m (add n v) = add (Byte.add n m) v.
+  add_cell m (add_cell n v) = add_cell (n + m) v.
 Proof.
   destruct v. cbn.
-  rewrite Byte.add_assoc, (Byte.add_comm m n). reflexivity.
+  rewrite <- Integers.Byte.add_assoc. reflexivity.
 Qed.
