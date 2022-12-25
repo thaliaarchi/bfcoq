@@ -1,4 +1,4 @@
-VFILES := Base.v Byte.v VM.v Token.v Ook.v AST.v ComIR.v MIR.v
+VFILES := Base.v Byte.v VM.v Token.v Ook.v AST.v ComIR.v MIR.v RelIR.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
