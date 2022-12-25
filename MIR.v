@@ -1,4 +1,4 @@
-From BF Require Import Base Byte VM IR.
+From BF Require Import Base Byte VM ComIR.
 
 Inductive mir : Type :=
   | MRight (n : positive) (m : mir)
@@ -66,7 +66,7 @@ Fixpoint lower_ir (i : ir) : mir :=
   end.
 
 Theorem lower_ir_sound : forall i v v',
-  IR.execute i v v' <-> execute (lower_ir i) v v'.
+  ComIR.execute i v v' <-> execute (lower_ir i) v v'.
 Proof.
   split.
   - intros. induction H; cbn; try (econstructor; eassumption); admit.
