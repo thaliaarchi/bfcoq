@@ -49,32 +49,32 @@ Definition equiv (m1 m2 : mir) : Prop := forall v v',
 Definition transform_sound (trans : mir -> mir) : Prop := forall m,
   equiv m (trans m).
 
-Fixpoint lower_ir (i : ir) : mir :=
-  match i with
-  | IRight n i' => MRight n (lower_ir i')
-  | ILeft n i' => MLeft n (lower_ir i')
-  | IAdd n i' => MAdd n (lower_ir i')
-  | IOutput i' => MOutput (lower_ir i')
-  | IInput i' => MInput (lower_ir i')
-  | ILoop body i' =>
+Fixpoint lower_comir (c : comir) : mir :=
+  match c with
+  | CRight n c' => MRight n (lower_comir c')
+  | CLeft n c' => MLeft n (lower_comir c')
+  | CAdd n c' => MAdd n (lower_comir c')
+  | COutput c' => MOutput (lower_comir c')
+  | CInput c' => MInput (lower_comir c')
+  | CLoop body c' =>
       match body with
-      | IAdd n IEnd => if Byte.odd n then MConst #00 (lower_ir i')
-                       else MLoop (lower_ir body) (lower_ir i')
-      | _ => MLoop (lower_ir body) (lower_ir i')
+      | CAdd n CEnd => if Byte.odd n then MConst #00 (lower_comir c')
+                       else MLoop (lower_comir body) (lower_comir c')
+      | _ => MLoop (lower_comir body) (lower_comir c')
       end
-  | IEnd => MEnd
+  | CEnd => MEnd
   end.
 
-Theorem lower_ir_sound : forall i v v',
-  ComIR.execute i v v' <-> execute (lower_ir i) v v'.
+Theorem lower_comir_sound : forall c v v',
+  ComIR.execute c v v' <-> execute (lower_comir c) v v'.
 Proof.
   split.
   - intros. induction H; cbn; try (econstructor; eassumption); admit.
   - generalize dependent v'; generalize dependent v.
-    induction i; cbn; intros.
-    + inversion H; subst. constructor. apply IHi. assumption.
-    + inversion H; subst. econstructor. eassumption. apply IHi. assumption.
-    + inversion H; subst. constructor. apply IHi. assumption.
-    + inversion H; subst. constructor. apply IHi. assumption.
-    + inversion H; subst. econstructor. eassumption. apply IHi. assumption.
+    induction c; cbn; intros.
+    + inversion H; subst. constructor. apply IHc. assumption.
+    + inversion H; subst. econstructor. eassumption. apply IHc. assumption.
+    + inversion H; subst. constructor. apply IHc. assumption.
+    + inversion H; subst. constructor. apply IHc. assumption.
+    + inversion H; subst. econstructor. eassumption. apply IHc. assumption.
 Admitted.
