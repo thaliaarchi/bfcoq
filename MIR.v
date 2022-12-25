@@ -32,12 +32,12 @@ Inductive execute : mir -> vm -> vm -> Prop :=
       execute m v' v'' ->
       execute (MInput m) v v''
   | E_MLoop : forall body m v v' v'',
-      VM.get_cell v =? #00 = false ->
+      v.(cell) =? #00 = false ->
       execute body v v' ->
       execute (MLoop body m) v' v'' ->
       execute (MLoop body m) v v''
   | E_MLoop_0 : forall body m v v',
-      VM.get_cell v =? #00 = true ->
+      v.(cell) =? #00 = true ->
       execute m v v' ->
       execute (MLoop body m) v v'
   | E_MEnd : forall v,

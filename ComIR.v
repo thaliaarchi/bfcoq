@@ -28,12 +28,12 @@ Inductive execute : comir -> vm -> vm -> Prop :=
       execute c v' v'' ->
       execute (CInput c) v v''
   | E_CLoop : forall body c v v' v'',
-      VM.get_cell v =? #00 = false ->
+      v.(cell) =? #00 = false ->
       execute body v v' ->
       execute (CLoop body c) v' v'' ->
       execute (CLoop body c) v v''
   | E_CLoop_0 : forall body c v v',
-      VM.get_cell v =? #00 = true ->
+      v.(cell) =? #00 = true ->
       execute c v v' ->
       execute (CLoop body c) v v'
   | E_CEnd : forall v,
@@ -104,7 +104,7 @@ Fixpoint combine (c : comir) : comir :=
 
 Example test_execute : forall a,
   parse (lex ",>+++[-<++>]<-.") = Some a ->
-  execute (lower_ast a) (VM.make [#02]) (VM [] #07 [] [#07] []).
+  execute (lower_ast a) (VM.make [#02]) (VM [] #07 [] [#07] [] VM.nil_norm).
 Proof.
   intros. inversion H; subst; clear H.
   repeat (apply E_CRight
@@ -115,7 +115,6 @@ Proof.
        || (eapply E_CLoop; [reflexivity | |])
        || (eapply E_CLoop_0; [reflexivity |])
        || apply E_CEnd).
-  (* TODO: Normalize right tape and bytes *)
 Admitted.
 
 Theorem lower_ast_sound : forall a v v',
@@ -156,26 +155,24 @@ Proof.
     + inversion H; subst.
       apply E_CRight, E_CRight. rewrite VM.move_right_add. assumption.
     + destruct_compare n0 n.
-      * eapply E_CRight, E_CLeft. apply VM.move_right_left_refl.
-        admit. assumption.
+      * eapply E_CRight, E_CLeft. apply VM.move_right_left_refl. assumption.
       * inversion H; subst.
         eapply E_CRight, E_CLeft. rewrite VM.move_right_left_lt.
-        eassumption. admit. apply Hcomp. assumption.
+        eassumption. apply Hcomp. assumption.
       * apply IHc in H. inversion H; subst.
         eapply E_CRight, E_CLeft. apply VM.move_right_left_gt.
-        admit. apply Hcomp. assumption.
+        apply Hcomp. assumption.
   - induction c; cbn; intros; try assumption;
     inversion H; inversion H4; subst.
     + rewrite VM.move_right_add in H9.
       apply E_CRight. assumption.
     + destruct_compare n0 n.
-      * rewrite VM.move_right_left_refl in H7. inversion H7; subst.
-        assumption. admit.
+      * rewrite VM.move_right_left_refl in H7. inversion H7; subst. assumption.
       * rewrite VM.move_right_left_lt in H7.
-        eapply E_CLeft. eassumption. assumption. admit. apply Hcomp.
+        eapply E_CLeft. eassumption. assumption. apply Hcomp.
       * rewrite VM.move_right_left_gt in H7. inversion H7; subst.
-        apply IHc. apply E_CRight. assumption. admit. assumption.
-Admitted.
+        apply IHc. apply E_CRight. assumption. assumption.
+Qed.
 
 Theorem cons_left_correct : forall c n v v',
   execute (cons_left n c) v v' <-> execute (CLeft n c) v v'.

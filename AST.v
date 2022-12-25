@@ -32,12 +32,12 @@ Inductive execute : ast -> vm -> vm -> Prop :=
       execute a v' v'' ->
       execute (AInput a) v v''
   | E_ALoop : forall body a v v' v'',
-      VM.get_cell v =? #00 = false ->
+      v.(cell) =? #00 = false ->
       execute body v v' ->
       execute (ALoop body a) v' v'' ->
       execute (ALoop body a) v v''
   | E_ALoop_0 : forall body a v v',
-      VM.get_cell v =? #00 = true ->
+      v.(cell) =? #00 = true ->
       execute a v v' ->
       execute (ALoop body a) v v'
   | E_AEnd : forall v,
@@ -111,7 +111,7 @@ Definition cons_add (n : byte) (a : ast) : ast :=
 
 Example test_execute : forall a,
   parse (lex ",>+++[-<++>]<-.") = Some a ->
-  execute a (VM.make [#02]) (VM [] #07 [] [#07] []).
+  execute a (VM.make [#02]) (VM [] #07 [] [#07] [] VM.nil_norm).
 Proof.
   intros. inversion H; subst; clear H.
   repeat (apply E_ARight
@@ -123,5 +123,4 @@ Proof.
        || (eapply E_ALoop; [reflexivity | |])
        || (eapply E_ALoop_0; [reflexivity |])
        || apply E_AEnd).
-  (* TODO: Normalize right tape and bytes *)
 Admitted.

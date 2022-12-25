@@ -24,24 +24,62 @@ Lemma repeat_apply_none : forall A (f : A -> option A) n,
 Proof.
   induction n; intros; [| cbn; rewrite IHn]; reflexivity. Qed.
 
-Inductive vm : Type :=
-  VM (l : list byte) (* cells to the left *)
-     (c : byte) (* current cell *)
-     (r : list byte) (* cells to the right *)
-     (o : list byte) (* outputs *)
-     (i : list byte). (* inputs *)
+Fixpoint normalized (r : list byte) : bool :=
+  match r with
+  | [] => true
+  | [x] => negb (x =? #00)
+  | x :: r' => normalized r'
+  end.
 
-Definition make (i : list byte) : vm := VM [] #00 [] [] i.
+Lemma nil_norm : normalized [] = true.
+Proof. reflexivity. Qed.
+
+Lemma single_norm : forall x,
+  x =? #00 = false -> normalized [x] = true.
+Proof. cbn. intros. destruct (x =? #00). discriminate. reflexivity. Qed.
+
+Lemma tail_norm : forall x r,
+  normalized (x :: r) = true -> normalized r = true.
+Proof. destruct r. reflexivity. intros. assumption. Qed.
+
+Lemma cons_norm : forall x y r,
+  normalized (y :: r) = true -> normalized (x :: y :: r) = true.
+Proof. intros. assumption. Qed.
+
+Lemma byte_eq0 : forall b,
+  { b =? #00 = true } + { b =? #00 = false}.
+Proof.
+  intros. destruct (b =? #00); [left | right]; reflexivity. Qed.
+
+Record vm : Type := VM {
+  cells_left : list byte;
+  cell : byte;
+  cells_right : list byte;
+  outputs : list byte;
+  inputs : list byte;
+  norm : normalized cells_right = true;
+}.
+
+Definition make (i : list byte) : vm :=
+  VM [] #00 [] [] i nil_norm.
 
 Definition shift_right (v : vm) : vm :=
   match v with
-  | VM l c (r :: r') o i => VM (c :: l) r r' o i
-  | VM l c [] o i => VM (c :: l) #00 [] o i
+  | VM l c (x :: r') o i H =>
+      VM (c :: l) x r' o i (tail_norm _ _ H)
+  | VM l c [] o i H =>
+      VM (c :: l) #00 [] o i H
   end.
 
 Definition shift_left (v : vm) : option vm :=
   match v with
-  | VM (l :: l') c r o i => Some (VM l' l (c :: r) o i)
+  | VM (lh :: l') c [] o i H =>
+      match byte_eq0 c with
+      | left Heq0 => Some (VM l' lh [] o i H)
+      | right Hne0 => Some (VM l' lh [c] o i (single_norm _ Hne0))
+      end
+  | VM (lh :: l') c r o i H =>
+      Some (VM l' lh (c :: r) o i (cons_norm _ _ _ H))
   | _ => None
   end.
 
@@ -51,60 +89,22 @@ Definition move_right (n : positive) (v : vm) : vm :=
 Definition move_left (n : positive) (v : option vm) : option vm :=
   repeat_apply (apply_if_some shift_left) (Pos.to_nat n) v.
 
-Definition get_cell (v : vm) : byte :=
-  let (_, c, _, _, _) := v in c.
-
 Definition set_cell (n : byte) (v : vm) : vm :=
-  let (l, _, r, o, i) := v in VM l n r o i.
+  let (l, _, r, o, i, H) := v in VM l n r o i H.
 
 Definition add_cell (n : byte) (v : vm) : vm :=
-  let (l, c, r, o, i) := v in VM l (c + n) r o i.
+  let (l, c, r, o, i, H) := v in VM l (c + n) r o i H.
 
 Definition output (v : vm) : vm :=
-  let (l, c, r, o, i) := v in VM l c r (c :: o) i.
+  let (l, c, r, o, i, H) := v in VM l c r (c :: o) i H.
 
 Definition input (v : vm) : option vm :=
   match v with
-  | VM l _ r o (i :: i') => Some (VM l i r o i')
+  | VM l _ r o (i :: i') H => Some (VM l i r o i' H)
   | _ => None
   end.
 
-Fixpoint normalize_tape_right (r : list byte) : list byte :=
-  match r with
-  | [] => []
-  | r0 :: r' => match normalize_tape_right r' with
-                | [] => if r0 =? #00 then [] else [r0]
-                | r'' => r0 :: r''
-                end
-  end.
-
-Definition normalize (v : vm) : vm :=
-  let (l, c, r, o, i) := v in VM l c (normalize_tape_right r) o i.
-
-Fixpoint all_0 (bs : list byte) : bool :=
-  match bs with
-  | [] => true
-  | b :: bs' => (b =? #00) && all_0 bs'
-  end.
-
-Fixpoint eq_tape_right (r1 r2 : list byte) : bool :=
-  match r1, r2 with
-  | [], [] => true
-  | x :: r1', y :: r2' => (x =? y) && eq_tape_right r1' r2'
-  | r1, [] => all_0 r1
-  | [], r2 => all_0 r2
-  end.
-
-Theorem normalize_idemp : forall v,
-  normalize (normalize v) = normalize v.
-Proof. Admitted.
-
-Theorem shift_right_normalize_assoc : forall v,
-  normalize (shift_right v) = shift_right (normalize v).
-Proof. Admitted.
-
 Theorem shift_right_left_refl : forall v,
-  v = normalize v ->
   shift_left (shift_right v) = Some v.
 Proof. Admitted.
 
@@ -118,25 +118,21 @@ Proof.
 Qed.
 
 Theorem move_right_left_refl : forall n v,
-  v = normalize v ->
   move_left n (Some (move_right n v)) = Some v.
 Proof.
   unfold move_right, move_left.
   intro n. induction (Pos.to_nat n); intros.
   - reflexivity.
   - cbn. rewrite repeat_apply_assoc with (f := shift_right), IHn0.
-    cbn. rewrite shift_right_left_refl. reflexivity. assumption.
-    rewrite shift_right_normalize_assoc, <- H. reflexivity.
+    cbn. rewrite shift_right_left_refl. reflexivity.
 Qed.
 
 Theorem move_right_left_lt : forall n m v,
-  v = normalize v ->
   (n < m)%positive ->
   move_left m (Some (move_right n v)) = move_left (m - n) (Some v).
 Proof. Admitted.
 
 Theorem move_right_left_gt : forall n m v,
-  v = normalize v ->
   (m < n)%positive ->
   move_left m (Some (move_right n v)) = Some (move_right (n - m) v).
 Proof. Admitted.
