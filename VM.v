@@ -34,10 +34,6 @@ Fixpoint normalized (r : list byte) : bool :=
 Lemma nil_norm : normalized [] = true.
 Proof. reflexivity. Qed.
 
-Lemma single_norm : forall x,
-  x =? #00 = false -> normalized [x] = true.
-Proof. cbn. intros. destruct (x =? #00). discriminate. reflexivity. Qed.
-
 Lemma tail_norm : forall x r,
   normalized (x :: r) = true -> normalized r = true.
 Proof. destruct r. reflexivity. intros. assumption. Qed.
@@ -46,10 +42,16 @@ Lemma cons_norm : forall x y r,
   normalized (y :: r) = true -> normalized (x :: y :: r) = true.
 Proof. intros. assumption. Qed.
 
-Lemma byte_eq0 : forall b,
-  { b =? #00 = true } + { b =? #00 = false}.
+Definition single (x : byte) : list byte :=
+  if x =? #00 then [] else [x].
+
+Lemma single_norm : forall x,
+  normalized (single x) = true.
 Proof.
-  intros. destruct (b =? #00); [left | right]; reflexivity. Qed.
+  unfold single. intros. destruct (x =? #00) eqn:Heq.
+  - reflexivity.
+  - cbn. rewrite Heq. reflexivity.
+Qed.
 
 Record vm : Type := VM {
   cells_left : list byte;
@@ -74,10 +76,7 @@ Definition shift_right (v : vm) : vm :=
 Definition shift_left (v : vm) : option vm :=
   match v with
   | VM (lh :: l') c [] o i H =>
-      match byte_eq0 c with
-      | left Heq0 => Some (VM l' lh [] o i H)
-      | right Hne0 => Some (VM l' lh [c] o i (single_norm _ Hne0))
-      end
+      Some (VM l' lh (single c) o i (single_norm _))
   | VM (lh :: l') c r o i H =>
       Some (VM l' lh (c :: r) o i (cons_norm _ _ _ H))
   | _ => None
@@ -130,7 +129,15 @@ Qed.
 Theorem move_right_left_lt : forall n m v,
   (n < m)%positive ->
   move_left m (Some (move_right n v)) = move_left (m - n) (Some v).
-Proof. Admitted.
+Proof.
+  unfold move_right, move_left.
+  intros. rewrite Pos2Nat.inj_sub by assumption.
+  remember (Pos.to_nat n) as n0. remember (Pos.to_nat m) as m0.
+  generalize dependent v; generalize dependent m0.
+  induction n0; intros.
+  - rewrite Nat.sub_0_r. reflexivity.
+  - simpl. rewrite repeat_apply_assoc. rewrite IHn0.
+Admitted.
 
 Theorem move_right_left_gt : forall n m v,
   (m < n)%positive ->
