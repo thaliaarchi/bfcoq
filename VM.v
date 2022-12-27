@@ -103,6 +103,32 @@ Definition input (v : vm) : option vm :=
   | _ => None
   end.
 
+Fixpoint list_byte_eq (l1 l2 : list byte) : bool :=
+  match l1, l2 with
+  | h1 :: l1', h2 :: l2' => (h1 =? h2) && list_byte_eq l1' l2'
+  | [], [] => true
+  | _, _ => false
+  end.
+
+Definition eq (v1 v2 : vm) : bool :=
+  let (l1, c1, r1, o1, i1, _) := v1 in
+  let (l2, c2, r2, o2, i2, _) := v2 in
+  list_byte_eq l1 l2 && (c1 =? c2) && list_byte_eq r1 r2
+    && list_byte_eq o1 o2 && list_byte_eq i1 i2.
+
+Theorem list_byte_eq_refl : forall l, list_byte_eq l l = true.
+Proof.
+  induction l.
+  - reflexivity.
+  - cbn. rewrite Integers.Byte.eq_true, IHl. reflexivity.
+Qed.
+
+Theorem eq_refl : forall v, eq v v = true.
+Proof.
+  destruct v. cbn. repeat rewrite list_byte_eq_refl.
+  rewrite Integers.Byte.eq_true. reflexivity.
+Qed.
+
 Theorem shift_right_left_refl : forall v,
   shift_left (shift_right v) = Some v.
 Proof. Admitted.

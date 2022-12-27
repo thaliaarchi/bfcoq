@@ -36,8 +36,9 @@ Inductive execute : comir -> vm -> vm -> Prop :=
       v.(cell) =? #00 = true ->
       execute c v v' ->
       execute (CLoop body c) v v'
-  | E_CEnd : forall v,
-      execute CEnd v v.
+  | E_CEnd : forall v v',
+      VM.eq v v' = true ->
+      execute CEnd v v'.
 
 Definition equiv (i1 i2 : comir) : Prop := forall v v',
   execute i1 v v' <-> execute i2 v v'.
@@ -114,8 +115,9 @@ Proof.
        || (eapply E_CInput; [reflexivity |])
        || (eapply E_CLoop; [reflexivity | |])
        || (eapply E_CLoop_0; [reflexivity |])
-       || apply E_CEnd).
-Admitted.
+       || (apply E_CEnd; apply VM.eq_refl)).
+  apply E_CEnd. reflexivity.
+Qed.
 
 Theorem lower_ast_sound : forall a v v',
   AST.execute a v v' <-> execute (lower_ast a) v v'.
@@ -137,7 +139,7 @@ Proof.
         -- apply IHa1. assumption.
         -- reflexivity.
       * apply E_ALoop_0, IHa2; assumption.
-    + inversion H; subst. apply E_AEnd.
+    + inversion H; subst. apply E_AEnd. assumption.
 Qed.
 
 Ltac destruct_compare n m :=

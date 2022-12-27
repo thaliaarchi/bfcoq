@@ -40,8 +40,9 @@ Inductive execute : ast -> vm -> vm -> Prop :=
       v.(cell) =? #00 = true ->
       execute a v v' ->
       execute (ALoop body a) v v'
-  | E_AEnd : forall v,
-      execute AEnd v v.
+  | E_AEnd : forall v v',
+      VM.eq v v' = true ->
+      execute AEnd v v'.
 
 Definition equiv (a1 a2 : ast) : Prop := forall v v',
   execute a1 v v' <-> execute a2 v v'.
@@ -122,5 +123,6 @@ Proof.
        || (eapply E_AInput; [reflexivity |])
        || (eapply E_ALoop; [reflexivity | |])
        || (eapply E_ALoop_0; [reflexivity |])
-       || apply E_AEnd).
-Admitted.
+       || (apply E_AEnd; apply VM.eq_refl)).
+  apply E_AEnd. reflexivity.
+Qed.
