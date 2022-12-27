@@ -24,31 +24,50 @@ Lemma repeat_apply_none : forall A (f : A -> option A) n,
 Proof.
   induction n; intros; [| cbn; rewrite IHn]; reflexivity. Qed.
 
-Fixpoint normalized (r : list byte) : bool :=
-  match r with
-  | [] => true
-  | [x] => negb (x =? #00)
-  | x :: r' => normalized r'
+Fixpoint normalize (bs : list byte) : list byte :=
+  match bs with
+  | b :: bs' => match normalize bs' with
+                | [] => if b =? #00 then [] else [b]
+                | bs'' => b :: bs''
+                end
+  | [] => []
   end.
 
-Lemma nil_norm : normalized [] = true.
+Fixpoint normalized (bs : list byte) : bool :=
+  match bs with
+  | [] => true
+  | [b] => negb (b =? #00)
+  | b :: bs' => normalized bs'
+  end.
+
+Theorem norm_normalize : forall bs,
+  normalized (normalize bs) = true.
+Proof.
+  induction bs.
+  - reflexivity.
+  - cbn. destruct (normalize bs) eqn:Hnorm.
+    + destruct (a =? #00) eqn:Heq; [| cbn; rewrite Heq]; reflexivity.
+    + apply IHbs.
+Qed.
+
+Lemma norm_nil : normalized [] = true.
 Proof. reflexivity. Qed.
 
-Lemma tail_norm : forall x r,
-  normalized (x :: r) = true -> normalized r = true.
-Proof. destruct r. reflexivity. intros. assumption. Qed.
+Lemma norm_tail : forall b bs,
+  normalized (b :: bs) = true -> normalized bs = true.
+Proof. destruct bs. reflexivity. intros. assumption. Qed.
 
-Lemma cons_norm : forall x y r,
-  normalized (y :: r) = true -> normalized (x :: y :: r) = true.
+Lemma norm_cons : forall b1 b2 bs,
+  normalized (b1 :: bs) = true -> normalized (b2 :: b1 :: bs) = true.
 Proof. intros. assumption. Qed.
 
-Definition single (x : byte) : list byte :=
-  if x =? #00 then [] else [x].
+Definition single (b : byte) : list byte :=
+  if b =? #00 then [] else [b].
 
-Lemma single_norm : forall x,
-  normalized (single x) = true.
+Lemma norm_single : forall b,
+  normalized (single b) = true.
 Proof.
-  unfold single. intros. destruct (x =? #00) eqn:Heq.
+  unfold single. intros. destruct (b =? #00) eqn:Heq.
   - reflexivity.
   - cbn. rewrite Heq. reflexivity.
 Qed.
@@ -63,12 +82,12 @@ Record vm : Type := VM {
 }.
 
 Definition make (i : list byte) : vm :=
-  VM [] #00 [] [] i nil_norm.
+  VM [] #00 [] [] i norm_nil.
 
 Definition shift_right (v : vm) : vm :=
   match v with
   | VM l c (x :: r') o i H =>
-      VM (c :: l) x r' o i (tail_norm _ _ H)
+      VM (c :: l) x r' o i (norm_tail _ _ H)
   | VM l c [] o i H =>
       VM (c :: l) #00 [] o i H
   end.
@@ -76,9 +95,9 @@ Definition shift_right (v : vm) : vm :=
 Definition shift_left (v : vm) : option vm :=
   match v with
   | VM (lh :: l') c [] o i H =>
-      Some (VM l' lh (single c) o i (single_norm _))
+      Some (VM l' lh (single c) o i (norm_single _))
   | VM (lh :: l') c r o i H =>
-      Some (VM l' lh (c :: r) o i (cons_norm _ _ _ H))
+      Some (VM l' lh (c :: r) o i (norm_cons _ _ _ H))
   | _ => None
   end.
 

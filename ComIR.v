@@ -105,7 +105,7 @@ Fixpoint combine (c : comir) : comir :=
 
 Example test_execute : forall a,
   parse (lex ",>+++[-<++>]<-.") = Some a ->
-  execute (lower_ast a) (VM.make [#02]) (VM [] #07 [] [#07] [] VM.nil_norm).
+  execute (lower_ast a) (VM.make [#02]) (VM [] #07 [] [#07] [] VM.norm_nil).
 Proof.
   intros. inversion H; subst; clear H.
   repeat (apply E_CRight

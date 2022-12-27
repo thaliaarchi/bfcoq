@@ -112,7 +112,7 @@ Definition cons_add (n : byte) (a : ast) : ast :=
 
 Example test_execute : forall a,
   parse (lex ",>+++[-<++>]<-.") = Some a ->
-  execute a (VM.make [#02]) (VM [] #07 [] [#07] [] VM.nil_norm).
+  execute a (VM.make [#02]) (VM [] #07 [] [#07] [] VM.norm_nil).
 Proof.
   intros. inversion H; subst; clear H.
   repeat (apply E_ARight
