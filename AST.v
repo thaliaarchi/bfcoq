@@ -1,4 +1,4 @@
-From BF Require Import Base Byte VM Token.
+From BF Require Import Base Byte RelVM VM Token.
 
 Inductive ast : Type :=
   | ARight (a : ast)
@@ -43,6 +43,44 @@ Inductive execute : ast -> vm -> vm -> Prop :=
   | E_AEnd : forall v v',
       VM.eq v v' = true ->
       execute AEnd v v'.
+
+Inductive execute_rel : ast -> RelVM.vm -> RelVM.vm -> Prop :=
+  | ER_ARight : forall a v v' v'',
+      RelVM.move 1 v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (ARight a) v v''
+  | ER_ALeft : forall a v v' v'',
+      RelVM.move (-1) v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (ALeft a) v v''
+  | ER_AInc : forall a v v' v'',
+      RelVM.add_cell #01 0 v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (AInc a) v v''
+  | ER_ADec : forall a v v' v'',
+      RelVM.add_cell #ff 0 v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (ADec a) (v) v''
+  | ER_AOutput : forall a v v' v'',
+      RelVM.output 0 v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (AOutput a) v v''
+  | ER_AInput : forall a v v' v'',
+      RelVM.input 0 v = Some v' ->
+      execute_rel a v' v'' ->
+      execute_rel (AInput a) v v''
+  | ER_ALoop : forall body a v v' v'',
+      RelVM.cell v =? #00 = false ->
+      execute_rel body v v' ->
+      execute_rel (ALoop body a) v' v'' ->
+      execute_rel (ALoop body a) v v''
+  | ER_ALoop_0 : forall body a v v',
+      RelVM.cell v =? #00 = true ->
+      execute_rel a v v' ->
+      execute_rel (ALoop body a) v v'
+  | ER_AEnd : forall v v',
+      RelVM.eq v v' = true ->
+      execute_rel AEnd v v'.
 
 Definition equiv (a1 a2 : ast) : Prop := forall v v',
   execute a1 v v' <-> execute a2 v v'.

@@ -49,3 +49,17 @@ Fixpoint lower_ast (a : ast) : relir :=
   | ALoop body a' => RLoop (lower_ast body) (lower_ast a')
   | AEnd => REnd
   end.
+
+Theorem lower_ast_sound : forall a v v',
+  AST.execute_rel a v v' <-> execute (lower_ast a) v v'.
+Proof.
+  split.
+  - intros. induction H; cbn; econstructor; eassumption.
+  - generalize dependent v'; generalize dependent v.
+    induction a; cbn; intros;
+    try (inversion H; subst; econstructor; try apply IHa; eassumption).
+    dependent induction H.
+    + eapply ER_ALoop. assumption. apply IHa1. eassumption.
+      apply IHexecute2. apply IHa2. apply IHa1. reflexivity.
+    + apply ER_ALoop_0, IHa2; assumption.
+Qed.

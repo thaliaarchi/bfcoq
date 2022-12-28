@@ -125,21 +125,12 @@ Proof.
   split.
   - intros. induction H; cbn; econstructor; eassumption.
   - generalize dependent v'; generalize dependent v.
-    induction a; cbn; intros.
-    + inversion H; subst. apply E_ARight, IHa. assumption.
-    + inversion H; subst. eapply E_ALeft. eassumption. apply IHa. assumption.
-    + inversion H; subst. apply E_AInc, IHa. assumption.
-    + inversion H; subst. apply E_ADec, IHa. assumption.
-    + inversion H; subst. apply E_AOutput, IHa. assumption.
-    + inversion H; subst. eapply E_AInput, IHa; eassumption.
-    + dependent induction H.
-      * eapply E_ALoop. assumption. apply IHa1. eassumption.
-        apply IHexecute2; intros.
-        -- apply IHa2. assumption.
-        -- apply IHa1. assumption.
-        -- reflexivity.
-      * apply E_ALoop_0, IHa2; assumption.
-    + inversion H; subst. apply E_AEnd. assumption.
+    induction a; cbn; intros;
+    try (inversion H; subst; econstructor; try apply IHa; eassumption).
+    dependent induction H.
+    + eapply E_ALoop. assumption. apply IHa1. eassumption.
+      apply IHexecute2. apply IHa2. apply IHa1. reflexivity.
+    + apply E_ALoop_0, IHa2; assumption.
 Qed.
 
 Ltac destruct_compare n m :=
