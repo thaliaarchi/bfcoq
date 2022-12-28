@@ -40,7 +40,7 @@ Fixpoint normalized (bs : list byte) : bool :=
   | b :: bs' => normalized bs'
   end.
 
-Theorem norm_normalize : forall bs,
+Lemma norm_normalize : forall bs,
   normalized (normalize bs) = true.
 Proof.
   induction bs.
@@ -48,6 +48,16 @@ Proof.
   - cbn. destruct (normalize bs) eqn:Hnorm.
     + destruct (a =? #00) eqn:Heq; [| cbn; rewrite Heq]; reflexivity.
     + apply IHbs.
+Qed.
+
+Lemma normalize_idemp : forall bs,
+  normalized bs = true -> normalize bs = bs.
+Proof.
+  induction bs.
+  - reflexivity.
+  - cbn. destruct bs; intros.
+    + apply Bool.negb_true_iff in H. rewrite H. reflexivity.
+    + apply IHbs in H. rewrite H. reflexivity.
 Qed.
 
 Lemma norm_nil : normalized [] = true.
