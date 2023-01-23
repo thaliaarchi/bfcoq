@@ -7,7 +7,7 @@ clean::
 	@if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq cleanall; fi
 	$(RM) -f Makefile.coq Makefile.coq.conf
 
-Makefile.coq:
+Makefile.coq: Makefile _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq $(VFILES)
 
 .PHONY: build clean
