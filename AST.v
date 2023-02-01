@@ -11,74 +11,74 @@ Inductive ast : Type :=
   | AEnd.
 
 Inductive execute : ast -> vm -> vm -> Prop :=
-  | E_ARight : forall a v v'',
+  | E_ARight a v v'' :
       execute a (VM.shift_right v) v'' ->
       execute (ARight a) v v''
-  | E_ALeft : forall a v v' v'',
+  | E_ALeft a v v' v'' :
       VM.shift_left v = Some v' ->
       execute a v' v'' ->
       execute (ALeft a) v v''
-  | E_AInc : forall a v v'',
+  | E_AInc a v v'' :
       execute a (VM.add_cell #01 v) v'' ->
       execute (AInc a) v v''
-  | E_ADec : forall a v v'',
+  | E_ADec a v v'' :
       execute a (VM.add_cell #ff v) v'' ->
       execute (ADec a) (v) v''
-  | E_AOutput : forall a v v'',
+  | E_AOutput a v v'' :
       execute a (VM.output v) v'' ->
       execute (AOutput a) v v''
-  | E_AInput : forall a v v' v'',
+  | E_AInput a v v' v'' :
       VM.input v = Some v' ->
       execute a v' v'' ->
       execute (AInput a) v v''
-  | E_ALoop : forall body a v v' v'',
+  | E_ALoop body a v v' v'' :
       v.(cell) =? #00 = false ->
       execute body v v' ->
       execute (ALoop body a) v' v'' ->
       execute (ALoop body a) v v''
-  | E_ALoop_0 : forall body a v v',
+  | E_ALoop_0 body a v v' :
       v.(cell) =? #00 = true ->
       execute a v v' ->
       execute (ALoop body a) v v'
-  | E_AEnd : forall v v',
+  | E_AEnd v v' :
       VM.eq v v' = true ->
       execute AEnd v v'.
 
 Inductive execute_rel : ast -> RelVM.vm -> RelVM.vm -> Prop :=
-  | ER_ARight : forall a v v' v'',
+  | ER_ARight a v v' v'' :
       RelVM.move 1 v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (ARight a) v v''
-  | ER_ALeft : forall a v v' v'',
+  | ER_ALeft a v v' v'' :
       RelVM.move (-1) v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (ALeft a) v v''
-  | ER_AInc : forall a v v' v'',
+  | ER_AInc a v v' v'' :
       RelVM.add_cell #01 0 v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (AInc a) v v''
-  | ER_ADec : forall a v v' v'',
+  | ER_ADec a v v' v'' :
       RelVM.add_cell #ff 0 v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (ADec a) (v) v''
-  | ER_AOutput : forall a v v' v'',
+  | ER_AOutput a v v' v'' :
       RelVM.output 0 v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (AOutput a) v v''
-  | ER_AInput : forall a v v' v'',
+  | ER_AInput a v v' v'' :
       RelVM.input 0 v = Some v' ->
       execute_rel a v' v'' ->
       execute_rel (AInput a) v v''
-  | ER_ALoop : forall body a v v' v'',
+  | ER_ALoop body a v v' v'' :
       RelVM.cell v =? #00 = false ->
       execute_rel body v v' ->
       execute_rel (ALoop body a) v' v'' ->
       execute_rel (ALoop body a) v v''
-  | ER_ALoop_0 : forall body a v v',
+  | ER_ALoop_0 body a v v' :
       RelVM.cell v =? #00 = true ->
       execute_rel a v v' ->
       execute_rel (ALoop body a) v v'
-  | ER_AEnd : forall v v',
+  | ER_AEnd v v' :
       RelVM.eq v v' = true ->
       execute_rel AEnd v v'.
 

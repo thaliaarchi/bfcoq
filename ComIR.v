@@ -10,33 +10,33 @@ Inductive comir : Type :=
   | CEnd.
 
 Inductive execute : comir -> vm -> vm -> Prop :=
-  | E_CRight : forall n c v v'',
+  | E_CRight n c v v'' :
       execute c (VM.move_right n v) v'' ->
       execute (CRight n c) v v''
-  | E_CLeft : forall n c v v' v'',
+  | E_CLeft n c v v' v'' :
       VM.move_left n (Some v) = Some v' ->
       execute c v' v'' ->
       execute (CLeft n c) v v''
-  | E_CAdd : forall n c v v'',
+  | E_CAdd n c v v'' :
       execute c (VM.add_cell n v) v'' ->
       execute (CAdd n c) v v''
-  | E_COutput : forall c v v'',
+  | E_COutput c v v'' :
       execute c (VM.output v) v'' ->
       execute (COutput c) v v''
-  | E_CInput : forall c v v' v'',
+  | E_CInput c v v' v'' :
       VM.input v = Some v' ->
       execute c v' v'' ->
       execute (CInput c) v v''
-  | E_CLoop : forall body c v v' v'',
+  | E_CLoop body c v v' v'' :
       v.(cell) =? #00 = false ->
       execute body v v' ->
       execute (CLoop body c) v' v'' ->
       execute (CLoop body c) v v''
-  | E_CLoop_0 : forall body c v v',
+  | E_CLoop_0 body c v v' :
       v.(cell) =? #00 = true ->
       execute c v v' ->
       execute (CLoop body c) v v'
-  | E_CEnd : forall v v',
+  | E_CEnd v v' :
       VM.eq v v' = true ->
       execute CEnd v v'.
 
