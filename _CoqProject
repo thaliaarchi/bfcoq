@@ -9,3 +9,4 @@ theories/AST.v
 theories/ComIR.v
 theories/MIR.v
 theories/RelIR.v
+theories/Set0.v
