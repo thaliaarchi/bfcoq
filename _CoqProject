@@ -1,1 +1,11 @@
 -Q . BF
+theories/Base.v
+theories/Byte.v
+theories/VM.v
+theories/RelVM.v
+theories/Token.v
+theories/Ook.v
+theories/AST.v
+theories/ComIR.v
+theories/MIR.v
+theories/RelIR.v
