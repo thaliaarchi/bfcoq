@@ -1,4 +1,21 @@
+Require Import Bool.
 From BF Require Import Base Byte MIR.
+
+Fixpoint mod_inverse_rec (x : nat) (i : nat) : option nat :=
+  match i with
+  | S i' =>
+      let y := 128 - i in
+      if (x * y mod 256 =? 1) || (x * y mod 256 =? 255)
+      then Some y
+      else mod_inverse_rec x i'
+  | O => None
+  end%nat.
+Definition mod_inverse (x : nat) : option nat := mod_inverse_rec x 127.
+
+Local Ltac exists_inverse_1 x y :=
+  destruct x; [discriminate | destruct x; [exists y; left; reflexivity |]].
+Local Ltac exists_inverse_255 x y :=
+  destruct x; [discriminate | destruct x; [exists y; right; reflexivity |]].
 
 Theorem nat_odd_has_inverse : forall x,
   x < 256 ->
@@ -6,133 +23,133 @@ Theorem nat_odd_has_inverse : forall x,
   exists y, x * y mod 256 = 1 \/ x * y mod 256 = 255.
 Proof.
   intros.
-  destruct x. discriminate. destruct x. (* 1 *) exists 1. now left.
-  destruct x. discriminate. destruct x. (* 3 *) exists 85. now right.
-  destruct x. discriminate. destruct x. (* 5 *) exists 51. now right.
-  destruct x. discriminate. destruct x. (* 7 *) exists 73. now right.
-  destruct x. discriminate. destruct x. (* 9 *) exists 57. now left.
-  destruct x. discriminate. destruct x. (* 11 *) exists 93. now right.
-  destruct x. discriminate. destruct x. (* 13 *) exists 59. now right.
-  destruct x. discriminate. destruct x. (* 15 *) exists 17. now right.
-  destruct x. discriminate. destruct x. (* 17 *) exists 15. now right.
-  destruct x. discriminate. destruct x. (* 19 *) exists 27. now left.
-  destruct x. discriminate. destruct x. (* 21 *) exists 61. now left.
-  destruct x. discriminate. destruct x. (* 23 *) exists 89. now right.
-  destruct x. discriminate. destruct x. (* 25 *) exists 41. now left.
-  destruct x. discriminate. destruct x. (* 27 *) exists 19. now left.
-  destruct x. discriminate. destruct x. (* 29 *) exists 53. now left.
-  destruct x. discriminate. destruct x. (* 31 *) exists 33. now right.
-  destruct x. discriminate. destruct x. (* 33 *) exists 31. now right.
-  destruct x. discriminate. destruct x. (* 35 *) exists 117. now right.
-  destruct x. discriminate. destruct x. (* 37 *) exists 83. now right.
-  destruct x. discriminate. destruct x. (* 39 *) exists 105. now right.
-  destruct x. discriminate. destruct x. (* 41 *) exists 25. now left.
-  destruct x. discriminate. destruct x. (* 43 *) exists 125. now right.
-  destruct x. discriminate. destruct x. (* 45 *) exists 91. now right.
-  destruct x. discriminate. destruct x. (* 47 *) exists 49. now right.
-  destruct x. discriminate. destruct x. (* 49 *) exists 47. now right.
-  destruct x. discriminate. destruct x. (* 51 *) exists 5. now right.
-  destruct x. discriminate. destruct x. (* 53 *) exists 29. now left.
-  destruct x. discriminate. destruct x. (* 55 *) exists 121. now right.
-  destruct x. discriminate. destruct x. (* 57 *) exists 9. now left.
-  destruct x. discriminate. destruct x. (* 59 *) exists 13. now right.
-  destruct x. discriminate. destruct x. (* 61 *) exists 21. now left.
-  destruct x. discriminate. destruct x. (* 63 *) exists 65. now right.
-  destruct x. discriminate. destruct x. (* 65 *) exists 63. now right.
-  destruct x. discriminate. destruct x. (* 67 *) exists 107. now left.
-  destruct x. discriminate. destruct x. (* 69 *) exists 115. now right.
-  destruct x. discriminate. destruct x. (* 71 *) exists 119. now left.
-  destruct x. discriminate. destruct x. (* 73 *) exists 7. now right.
-  destruct x. discriminate. destruct x. (* 75 *) exists 99. now left.
-  destruct x. discriminate. destruct x. (* 77 *) exists 123. now right.
-  destruct x. discriminate. destruct x. (* 79 *) exists 81. now right.
-  destruct x. discriminate. destruct x. (* 81 *) exists 79. now right.
-  destruct x. discriminate. destruct x. (* 83 *) exists 37. now right.
-  destruct x. discriminate. destruct x. (* 85 *) exists 3. now right.
-  destruct x. discriminate. destruct x. (* 87 *) exists 103. now left.
-  destruct x. discriminate. destruct x. (* 89 *) exists 23. now right.
-  destruct x. discriminate. destruct x. (* 91 *) exists 45. now right.
-  destruct x. discriminate. destruct x. (* 93 *) exists 11. now right.
-  destruct x. discriminate. destruct x. (* 95 *) exists 97. now right.
-  destruct x. discriminate. destruct x. (* 97 *) exists 95. now right.
-  destruct x. discriminate. destruct x. (* 99 *) exists 75. now left.
-  destruct x. discriminate. destruct x. (* 101 *) exists 109. now left.
-  destruct x. discriminate. destruct x. (* 103 *) exists 87. now left.
-  destruct x. discriminate. destruct x. (* 105 *) exists 39. now right.
-  destruct x. discriminate. destruct x. (* 107 *) exists 67. now left.
-  destruct x. discriminate. destruct x. (* 109 *) exists 101. now left.
-  destruct x. discriminate. destruct x. (* 111 *) exists 113. now right.
-  destruct x. discriminate. destruct x. (* 113 *) exists 111. now right.
-  destruct x. discriminate. destruct x. (* 115 *) exists 69. now right.
-  destruct x. discriminate. destruct x. (* 117 *) exists 35. now right.
-  destruct x. discriminate. destruct x. (* 119 *) exists 71. now left.
-  destruct x. discriminate. destruct x. (* 121 *) exists 55. now right.
-  destruct x. discriminate. destruct x. (* 123 *) exists 77. now right.
-  destruct x. discriminate. destruct x. (* 125 *) exists 43. now right.
-  destruct x. discriminate. destruct x. (* 127 *) exists 127. now left.
-  destruct x. discriminate. destruct x. (* 129 *) exists 127. now right.
-  destruct x. discriminate. destruct x. (* 131 *) exists 43. now left.
-  destruct x. discriminate. destruct x. (* 133 *) exists 77. now left.
-  destruct x. discriminate. destruct x. (* 135 *) exists 55. now left.
-  destruct x. discriminate. destruct x. (* 137 *) exists 71. now right.
-  destruct x. discriminate. destruct x. (* 139 *) exists 35. now left.
-  destruct x. discriminate. destruct x. (* 141 *) exists 69. now left.
-  destruct x. discriminate. destruct x. (* 143 *) exists 111. now left.
-  destruct x. discriminate. destruct x. (* 145 *) exists 113. now left.
-  destruct x. discriminate. destruct x. (* 147 *) exists 101. now right.
-  destruct x. discriminate. destruct x. (* 149 *) exists 67. now right.
-  destruct x. discriminate. destruct x. (* 151 *) exists 39. now left.
-  destruct x. discriminate. destruct x. (* 153 *) exists 87. now right.
-  destruct x. discriminate. destruct x. (* 155 *) exists 109. now right.
-  destruct x. discriminate. destruct x. (* 157 *) exists 75. now right.
-  destruct x. discriminate. destruct x. (* 159 *) exists 95. now left.
-  destruct x. discriminate. destruct x. (* 161 *) exists 97. now left.
-  destruct x. discriminate. destruct x. (* 163 *) exists 11. now left.
-  destruct x. discriminate. destruct x. (* 165 *) exists 45. now left.
-  destruct x. discriminate. destruct x. (* 167 *) exists 23. now left.
-  destruct x. discriminate. destruct x. (* 169 *) exists 103. now right.
-  destruct x. discriminate. destruct x. (* 171 *) exists 3. now left.
-  destruct x. discriminate. destruct x. (* 173 *) exists 37. now left.
-  destruct x. discriminate. destruct x. (* 175 *) exists 79. now left.
-  destruct x. discriminate. destruct x. (* 177 *) exists 81. now left.
-  destruct x. discriminate. destruct x. (* 179 *) exists 123. now left.
-  destruct x. discriminate. destruct x. (* 181 *) exists 99. now right.
-  destruct x. discriminate. destruct x. (* 183 *) exists 7. now left.
-  destruct x. discriminate. destruct x. (* 185 *) exists 119. now right.
-  destruct x. discriminate. destruct x. (* 187 *) exists 115. now left.
-  destruct x. discriminate. destruct x. (* 189 *) exists 107. now right.
-  destruct x. discriminate. destruct x. (* 191 *) exists 63. now left.
-  destruct x. discriminate. destruct x. (* 193 *) exists 65. now left.
-  destruct x. discriminate. destruct x. (* 195 *) exists 21. now right.
-  destruct x. discriminate. destruct x. (* 197 *) exists 13. now left.
-  destruct x. discriminate. destruct x. (* 199 *) exists 9. now right.
-  destruct x. discriminate. destruct x. (* 201 *) exists 121. now left.
-  destruct x. discriminate. destruct x. (* 203 *) exists 29. now right.
-  destruct x. discriminate. destruct x. (* 205 *) exists 5. now left.
-  destruct x. discriminate. destruct x. (* 207 *) exists 47. now left.
-  destruct x. discriminate. destruct x. (* 209 *) exists 49. now left.
-  destruct x. discriminate. destruct x. (* 211 *) exists 91. now left.
-  destruct x. discriminate. destruct x. (* 213 *) exists 125. now left.
-  destruct x. discriminate. destruct x. (* 215 *) exists 25. now right.
-  destruct x. discriminate. destruct x. (* 217 *) exists 105. now left.
-  destruct x. discriminate. destruct x. (* 219 *) exists 83. now left.
-  destruct x. discriminate. destruct x. (* 221 *) exists 117. now left.
-  destruct x. discriminate. destruct x. (* 223 *) exists 31. now left.
-  destruct x. discriminate. destruct x. (* 225 *) exists 33. now left.
-  destruct x. discriminate. destruct x. (* 227 *) exists 53. now right.
-  destruct x. discriminate. destruct x. (* 229 *) exists 19. now right.
-  destruct x. discriminate. destruct x. (* 231 *) exists 41. now right.
-  destruct x. discriminate. destruct x. (* 233 *) exists 89. now left.
-  destruct x. discriminate. destruct x. (* 235 *) exists 61. now right.
-  destruct x. discriminate. destruct x. (* 237 *) exists 27. now right.
-  destruct x. discriminate. destruct x. (* 239 *) exists 15. now left.
-  destruct x. discriminate. destruct x. (* 241 *) exists 17. now left.
-  destruct x. discriminate. destruct x. (* 243 *) exists 59. now left.
-  destruct x. discriminate. destruct x. (* 245 *) exists 93. now left.
-  destruct x. discriminate. destruct x. (* 247 *) exists 57. now right.
-  destruct x. discriminate. destruct x. (* 249 *) exists 73. now left.
-  destruct x. discriminate. destruct x. (* 251 *) exists 51. now left.
-  destruct x. discriminate. destruct x. (* 253 *) exists 85. now left.
-  destruct x. discriminate. destruct x. (* 255 *) exists 1. now right.
+  exists_inverse_1 x 1. (* 1 *)
+  exists_inverse_255 x 85. (* 3 *)
+  exists_inverse_255 x 51. (* 5 *)
+  exists_inverse_255 x 73. (* 7 *)
+  exists_inverse_1 x 57. (* 9 *)
+  exists_inverse_255 x 93. (* 11 *)
+  exists_inverse_255 x 59. (* 13 *)
+  exists_inverse_255 x 17. (* 15 *)
+  exists_inverse_255 x 15. (* 17 *)
+  exists_inverse_1 x 27. (* 19 *)
+  exists_inverse_1 x 61. (* 21 *)
+  exists_inverse_255 x 89. (* 23 *)
+  exists_inverse_1 x 41. (* 25 *)
+  exists_inverse_1 x 19. (* 27 *)
+  exists_inverse_1 x 53. (* 29 *)
+  exists_inverse_255 x 33. (* 31 *)
+  exists_inverse_255 x 31. (* 33 *)
+  exists_inverse_255 x 117. (* 35 *)
+  exists_inverse_255 x 83. (* 37 *)
+  exists_inverse_255 x 105. (* 39 *)
+  exists_inverse_1 x 25. (* 41 *)
+  exists_inverse_255 x 125. (* 43 *)
+  exists_inverse_255 x 91. (* 45 *)
+  exists_inverse_255 x 49. (* 47 *)
+  exists_inverse_255 x 47. (* 49 *)
+  exists_inverse_255 x 5. (* 51 *)
+  exists_inverse_1 x 29. (* 53 *)
+  exists_inverse_255 x 121. (* 55 *)
+  exists_inverse_1 x 9. (* 57 *)
+  exists_inverse_255 x 13. (* 59 *)
+  exists_inverse_1 x 21. (* 61 *)
+  exists_inverse_255 x 65. (* 63 *)
+  exists_inverse_255 x 63. (* 65 *)
+  exists_inverse_1 x 107. (* 67 *)
+  exists_inverse_255 x 115. (* 69 *)
+  exists_inverse_1 x 119. (* 71 *)
+  exists_inverse_255 x 7. (* 73 *)
+  exists_inverse_1 x 99. (* 75 *)
+  exists_inverse_255 x 123. (* 77 *)
+  exists_inverse_255 x 81. (* 79 *)
+  exists_inverse_255 x 79. (* 81 *)
+  exists_inverse_255 x 37. (* 83 *)
+  exists_inverse_255 x 3. (* 85 *)
+  exists_inverse_1 x 103. (* 87 *)
+  exists_inverse_255 x 23. (* 89 *)
+  exists_inverse_255 x 45. (* 91 *)
+  exists_inverse_255 x 11. (* 93 *)
+  exists_inverse_255 x 97. (* 95 *)
+  exists_inverse_255 x 95. (* 97 *)
+  exists_inverse_1 x 75. (* 99 *)
+  exists_inverse_1 x 109. (* 101 *)
+  exists_inverse_1 x 87. (* 103 *)
+  exists_inverse_255 x 39. (* 105 *)
+  exists_inverse_1 x 67. (* 107 *)
+  exists_inverse_1 x 101. (* 109 *)
+  exists_inverse_255 x 113. (* 111 *)
+  exists_inverse_255 x 111. (* 113 *)
+  exists_inverse_255 x 69. (* 115 *)
+  exists_inverse_255 x 35. (* 117 *)
+  exists_inverse_1 x 71. (* 119 *)
+  exists_inverse_255 x 55. (* 121 *)
+  exists_inverse_255 x 77. (* 123 *)
+  exists_inverse_255 x 43. (* 125 *)
+  exists_inverse_1 x 127. (* 127 *)
+  exists_inverse_255 x 127. (* 129 *)
+  exists_inverse_1 x 43. (* 131 *)
+  exists_inverse_1 x 77. (* 133 *)
+  exists_inverse_1 x 55. (* 135 *)
+  exists_inverse_255 x 71. (* 137 *)
+  exists_inverse_1 x 35. (* 139 *)
+  exists_inverse_1 x 69. (* 141 *)
+  exists_inverse_1 x 111. (* 143 *)
+  exists_inverse_1 x 113. (* 145 *)
+  exists_inverse_255 x 101. (* 147 *)
+  exists_inverse_255 x 67. (* 149 *)
+  exists_inverse_1 x 39. (* 151 *)
+  exists_inverse_255 x 87. (* 153 *)
+  exists_inverse_255 x 109. (* 155 *)
+  exists_inverse_255 x 75. (* 157 *)
+  exists_inverse_1 x 95. (* 159 *)
+  exists_inverse_1 x 97. (* 161 *)
+  exists_inverse_1 x 11. (* 163 *)
+  exists_inverse_1 x 45. (* 165 *)
+  exists_inverse_1 x 23. (* 167 *)
+  exists_inverse_255 x 103. (* 169 *)
+  exists_inverse_1 x 3. (* 171 *)
+  exists_inverse_1 x 37. (* 173 *)
+  exists_inverse_1 x 79. (* 175 *)
+  exists_inverse_1 x 81. (* 177 *)
+  exists_inverse_1 x 123. (* 179 *)
+  exists_inverse_255 x 99. (* 181 *)
+  exists_inverse_1 x 7. (* 183 *)
+  exists_inverse_255 x 119. (* 185 *)
+  exists_inverse_1 x 115. (* 187 *)
+  exists_inverse_255 x 107. (* 189 *)
+  exists_inverse_1 x 63. (* 191 *)
+  exists_inverse_1 x 65. (* 193 *)
+  exists_inverse_255 x 21. (* 195 *)
+  exists_inverse_1 x 13. (* 197 *)
+  exists_inverse_255 x 9. (* 199 *)
+  exists_inverse_1 x 121. (* 201 *)
+  exists_inverse_255 x 29. (* 203 *)
+  exists_inverse_1 x 5. (* 205 *)
+  exists_inverse_1 x 47. (* 207 *)
+  exists_inverse_1 x 49. (* 209 *)
+  exists_inverse_1 x 91. (* 211 *)
+  exists_inverse_1 x 125. (* 213 *)
+  exists_inverse_255 x 25. (* 215 *)
+  exists_inverse_1 x 105. (* 217 *)
+  exists_inverse_1 x 83. (* 219 *)
+  exists_inverse_1 x 117. (* 221 *)
+  exists_inverse_1 x 31. (* 223 *)
+  exists_inverse_1 x 33. (* 225 *)
+  exists_inverse_255 x 53. (* 227 *)
+  exists_inverse_255 x 19. (* 229 *)
+  exists_inverse_255 x 41. (* 231 *)
+  exists_inverse_1 x 89. (* 233 *)
+  exists_inverse_255 x 61. (* 235 *)
+  exists_inverse_255 x 27. (* 237 *)
+  exists_inverse_1 x 15. (* 239 *)
+  exists_inverse_1 x 17. (* 241 *)
+  exists_inverse_1 x 59. (* 243 *)
+  exists_inverse_1 x 93. (* 245 *)
+  exists_inverse_255 x 57. (* 247 *)
+  exists_inverse_1 x 73. (* 249 *)
+  exists_inverse_1 x 51. (* 251 *)
+  exists_inverse_1 x 85. (* 253 *)
+  exists_inverse_255 x 1. (* 255 *)
   intuition.
 Qed.
