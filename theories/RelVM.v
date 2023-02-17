@@ -74,3 +74,9 @@ Definition eq (v1 v2 : vm) : bool :=
   let (t2, p2, o2, i2) := v2 in
   VM.list_byte_eq t1 t2 && (p1 =? p2)%N
     && VM.list_byte_eq o1 o2 && VM.list_byte_eq i1 i2.
+
+Theorem eq_refl : forall v,
+  eq v v = true.
+Proof.
+  destruct v. cbn.
+  repeat rewrite list_byte_eq_refl. now rewrite N.eqb_refl. Qed.
