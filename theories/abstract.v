@@ -94,34 +94,32 @@ Definition N_bounded (n : N) (b : bound) : Prop :=
 
 Definition Z_bounded (n : Z) (lbound rbound : bound) : Prop :=
   match n with
-  | Z0 => N_bounded N0 rbound
-  | Zpos p => N_bounded (Npos p) rbound
   | Zneg p => N_bounded (Npos p) lbound
+  | _ => N_bounded (Z.to_N n) rbound
   end.
 
-Definition tape_bounded (b : bound) (tape : list byte) : Prop :=
+Definition tape_bounded (tape : list byte) (b : bound) : Prop :=
   if b is BFinite n then N.of_nat (length tape) <= n else True.
 
 Record vm := MkVM {
   ptr : Z;
   ltape : list byte;
   rtape : list byte;
-  lbound : bound;
-  rbound : bound;
-
   inputs : list byte;
   outputs : list byte;
 
+  lbound : bound;
+  rbound : bound;
   ptr_bounded : Z_bounded ptr lbound rbound;
-  ltape_bounded : tape_bounded lbound ltape;
-  rtape_bounded : tape_bounded rbound rtape;
+  ltape_bounded : tape_bounded ltape lbound;
+  rtape_bounded : tape_bounded rtape rbound;
 }.
 
 Definition classic : vm.
-Proof. now apply (MkVM 0 [] [] (BFinite 0) (BFinite 30000) [] []). Defined.
+Proof. now apply (MkVM 0 [] [] [] [] (BFinite 0) (BFinite 30000)). Defined.
 
 Definition unbounded : vm.
-Proof. now apply (MkVM 0 [] [] BInfinite BInfinite [] []). Defined.
+Proof. now apply (MkVM 0 [] [] [] [] BInfinite BInfinite). Defined.
 
 Fixpoint tape_empty (t : list byte) : bool :=
   match t with
@@ -150,30 +148,16 @@ Definition bound_eqb (b1 b2 : bound) : bool :=
   end.
 
 Definition eqb (v1 v2 : vm) : bool :=
-  let (i1, l1, r1, lb1, rb1, in1, out1, _, _, _) := v1 in
-  let (i2, l2, r2, lb2, rb2, in2, out2, _, _, _) := v2 in
+  let (i1, l1, r1, in1, out1, lb1, rb1, _, _, _) := v1 in
+  let (i2, l2, r2, in2, out2, lb2, rb2, _, _, _) := v2 in
   Z.eqb i1 i2 &&
   tape_eqb l1 l2 && tape_eqb r1 r2 &&
-  bound_eqb lb1 lb2 && bound_eqb rb1 rb2 &&
-  io_eqb in1 in2 && io_eqb out1 out2.
-
-Theorem bound_eqb_refl : forall b, bound_eqb b b = true.
-Proof.
-  destruct b; try reflexivity. apply N.eqb_refl. Qed.
-
-Theorem bound_eqb_sym : forall b1 b2, bound_eqb b1 b2 = bound_eqb b2 b1.
-Proof.
-  destruct b1, b2; try reflexivity. apply N.eqb_sym. Qed.
-
-Theorem bound_eqb_trans : forall b1 b2 b3,
-  bound_eqb b1 b2 = true -> bound_eqb b2 b3 = true -> bound_eqb b1 b3 = true.
-Proof.
-  destruct b1, b2, b3; try reflexivity; try discriminate.
-  cbn. repeat rewrite N.eqb_eq. apply N.eq_trans. Qed.
+  io_eqb in1 in2 && io_eqb out1 out2 &&
+  bound_eqb lb1 lb2 && bound_eqb rb1 rb2.
 
 Theorem tape_eqb_refl : forall t, tape_eqb t t = true.
 Proof.
-  induction t. { reflexivity. } { cbn. now rewrite Byte.eqb_refl, IHt. } Qed.
+  induction t. reflexivity. cbn. now rewrite Byte.eqb_refl, IHt. Qed.
 
 Theorem tape_eqb_sym : forall t1 t2, tape_eqb t1 t2 = tape_eqb t2 t1.
 Proof.
@@ -231,7 +215,7 @@ Qed.
 
 Theorem io_eqb_refl : forall l, io_eqb l l = true.
 Proof.
-  induction l. { reflexivity. } { cbn. now rewrite Byte.eqb_refl, IHl. } Qed.
+  induction l. reflexivity. cbn. now rewrite Byte.eqb_refl, IHl. Qed.
 
 Theorem io_eqb_sym : forall l1 l2, io_eqb l1 l2 = io_eqb l2 l1.
 Proof.
@@ -246,19 +230,33 @@ Proof.
   - rewrite Byte.eqb_eq in *. now rewrite H.
   - eapply IHl1; eassumption. Qed.
 
+Theorem bound_eqb_refl : forall b, bound_eqb b b = true.
+Proof.
+  destruct b; try reflexivity. apply N.eqb_refl. Qed.
+
+Theorem bound_eqb_sym : forall b1 b2, bound_eqb b1 b2 = bound_eqb b2 b1.
+Proof.
+  destruct b1, b2; try reflexivity. apply N.eqb_sym. Qed.
+
+Theorem bound_eqb_trans : forall b1 b2 b3,
+  bound_eqb b1 b2 = true -> bound_eqb b2 b3 = true -> bound_eqb b1 b3 = true.
+Proof.
+  destruct b1, b2, b3; try reflexivity; try discriminate.
+  cbn. repeat rewrite N.eqb_eq. apply N.eq_trans. Qed.
+
 Theorem eqb_refl : forall v, eqb v v = true.
 Proof.
   destruct v. cbn.
   now rewrite Z.eqb_refl, tape_eqb_refl, tape_eqb_refl,
-              bound_eqb_refl, bound_eqb_refl, io_eqb_refl, io_eqb_refl. Qed.
+              io_eqb_refl, io_eqb_refl, bound_eqb_refl, bound_eqb_refl. Qed.
 
 Theorem eqb_sym : forall v1 v2, eqb v1 v2 = eqb v2 v1.
 Proof.
   destruct v1, v2. cbn. repeat rewrite <- Bool.andb_assoc.
   rewrite Z.eqb_sym. f_equal.
   repeat (rewrite tape_eqb_sym; f_equal).
-  repeat (rewrite bound_eqb_sym; f_equal).
-  repeat (rewrite io_eqb_sym; f_equal). Qed.
+  repeat (rewrite io_eqb_sym; f_equal).
+  repeat (rewrite bound_eqb_sym; f_equal). Qed.
 
 Theorem eqb_trans : forall v1 v2 v3,
   eqb v1 v2 = true -> eqb v2 v3 = true -> eqb v1 v3 = true.
@@ -268,7 +266,7 @@ Proof.
   repeat rewrite Bool.andb_true_iff. repeat split;
   rewrite Z.eqb_eq in *;
   try (eapply Z.eq_trans || eapply tape_eqb_trans ||
-       eapply bound_eqb_trans || eapply io_eqb_trans); try eassumption. Qed.
+       eapply io_eqb_trans || eapply bound_eqb_trans); try eassumption. Qed.
 
 Definition eq (v1 v2 : vm) : Prop := eqb v1 v2 = true.
 
@@ -289,6 +287,116 @@ Add Relation vm eq
 
 End VM.
 
+Module AbstractVM.
+
+Local Open Scope N_scope.
+
+Inductive value :=
+  | VSelf
+  | VInput
+  | VConst (b : byte)
+  | VAddC (b : byte) (v : value).
+
+Inductive effect :=
+  | EGuard (offset : Z)
+  | EInput (ptr : Z)
+  | EOutput (v : value).
+
+Definition Z_bounded (n : Z) (lmax rmax : N) : Prop :=
+  match n with
+  | Zneg p => Npos p < lmax
+  | _ => Z.to_N n < rmax
+  end.
+
+Definition tape_bounded (tape : list value) (max : N) : Prop :=
+  N.of_nat (length tape) <= max.
+
+Record abstract_vm := MkAbstractVM {
+  ptr : Z;
+  ltape : list value;
+  rtape : list value;
+  effects : list effect;
+
+  lmax : N;
+  rmax : N;
+  ptr_bounded : Z_bounded ptr lmax rmax;
+  ltape_bounded : tape_bounded ltape lmax;
+  rtape_bounded : tape_bounded rtape rmax;
+}.
+
+Definition make : abstract_vm.
+Proof. now apply (MkAbstractVM 0 [] [] [] 0 1). Defined.
+
+Definition cons_effect (e : effect) (v : abstract_vm) : abstract_vm :=
+  let (p, l, r, es, lm, rm, pb, lb, rb) := v in
+  MkAbstractVM p l r (e :: es) lm rm pb lb rb.
+
+Definition get_cell (off : Z) (v : abstract_vm) : value :=
+  match (v.(ptr) + off)%Z with
+  | Zneg p => nth_default VSelf v.(ltape) (Pos.to_nat p)
+  | _ as n => nth_default VSelf v.(rtape) (Z.to_nat n)
+  end.
+
+Fixpoint list_map_nth {A} (default : A) (f : A -> A) (l : list A) (n : nat) : list A :=
+  match n, l with
+  | O, [] => [f default]
+  | O, h :: l' => f h :: l'
+  | S n', [] => default :: list_map_nth default f [] n'
+  | S n', h :: l' => h :: list_map_nth default f l' n'
+  end.
+
+Theorem list_map_nth_length : forall A default f (l : list A) n,
+  length (list_map_nth default f l n) = Nat.max (S n) (length l).
+Proof.
+  induction l; induction n; intros; try reflexivity; cbn.
+  now rewrite IHn. now rewrite IHl. Qed.
+
+Definition map_cell (f : value -> value) (v : abstract_vm) : abstract_vm.
+Proof.
+  destruct v, ptr0.
+  - apply (MkAbstractVM 0 ltape0 (list_map_nth VSelf f rtape0 0) effects0 lmax0 rmax0).
+    + assumption.
+    + assumption.
+    + unfold tape_bounded. rewrite list_map_nth_length.
+      destruct rtape0.
+      * apply N.le_succ_l in ptr_bounded0. apply ptr_bounded0.
+      * apply rtape_bounded0.
+  - apply (MkAbstractVM (Z.pos p) ltape0 (list_map_nth VSelf f rtape0 (Pos.to_nat p)) effects0 lmax0 rmax0).
+    + assumption.
+    + assumption.
+    + unfold tape_bounded. rewrite list_map_nth_length.
+      destruct (le_gt_dec (S (Pos.to_nat p)) (length rtape0)).
+      * apply Nat.max_r in l. rewrite l. apply rtape_bounded0.
+      * apply Nat.lt_le_incl, Nat.max_l in g. rewrite g.
+        cbn. rewrite Pos2SuccNat.id_succ.
+        apply N.le_succ_l in ptr_bounded0. apply ptr_bounded0.
+  - apply (MkAbstractVM (Z.neg p) (list_map_nth VSelf f ltape0 (Pos.to_nat p)) rtape0 effects0 lmax0 rmax0).
+    + assumption.
+    + unfold tape_bounded. rewrite list_map_nth_length.
+      destruct (le_gt_dec (S (Pos.to_nat p)) (length ltape0)).
+      * apply Nat.max_r in l. rewrite l. apply ltape_bounded0.
+      * apply Nat.lt_le_incl, Nat.max_l in g. rewrite g.
+        cbn. rewrite Pos2SuccNat.id_succ.
+        apply N.le_succ_l in ptr_bounded0. apply ptr_bounded0.
+    + assumption.
+Defined.
+
+Definition eval_inc := map_cell (VAddC Byte.one).
+Definition eval_dec := map_cell (VAddC Byte.max).
+
+Definition eval_left (v : abstract_vm) : abstract_vm.
+Admitted.
+
+Definition eval_right (v : abstract_vm) : abstract_vm.
+Admitted.
+
+Definition eval_input (v : abstract_vm) : abstract_vm :=
+  let v := map_cell (fun _ => VInput) v in
+  cons_effect (EInput v.(ptr)) v.
+
+Definition eval_output (v : abstract_vm) : abstract_vm :=
+  cons_effect (EOutput (get_cell 0 v)) v.
+
 Inductive ast_block :=
   | IInc (bl : ast_block)
   | IDec (bl : ast_block)
@@ -305,8 +413,4 @@ Inductive block :=
   | BGuard (nl nr : N) (bl : block)
   | BMove (n : Z).
 
-Inductive effect :=
-  | EInput
-  | EOutput
-  | EDiverge
-  | EOverflow.
+End AbstractVM.
