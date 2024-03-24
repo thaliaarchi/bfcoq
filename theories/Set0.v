@@ -144,10 +144,13 @@ Qed.
 Local Open Scope Z_scope.
 
 Theorem Z_odd_has_inverse : forall x,
+  -1 < x ->
   x < 256 ->
-  x >= 0 ->
   Z.odd x = true ->
-  exists y, x * y mod 256 = 1.
+  exists y,
+    x * y mod 256 = 1 /\
+    -1 < y /\
+    y < 256.
 Proof.
   intros.
   destruct x as [| x | x].
@@ -664,6 +667,20 @@ Proof.
     }
     { discriminate. }
     { (* 1 *) now exists 1. }
-  - apply Z.ge_le, Zle_not_lt in H0.
-    exfalso. apply H0, Zlt_neg_0.
+  - apply Zlt_le_succ, Zle_not_lt in H.
+    exfalso. apply H, Zlt_neg_0.
+Qed.
+
+Close Scope Z_scope.
+Open Scope byte_scope.
+
+Theorem Byte_odd_has_inverse : forall x,
+  Byte.odd x = true -> exists y, x * y = #01.
+Proof.
+  unfold odd, Integers.Byte.add, Integers.Byte.mul. intros.
+  destruct x as [x], intrange as [Hxmin Hxmax].
+  destruct (Z_odd_has_inverse x Hxmin Hxmax H) as [y [Hinv [Hymin Hymax]]].
+  exists (Integers.Byte.mkint y (conj Hymin Hymax)). cbn.
+  rewrite <- Integers.Byte.unsigned_repr_eq in Hinv.
+  rewrite <- Hinv, Integers.Byte.repr_unsigned. reflexivity.
 Qed.
