@@ -4,10 +4,10 @@ A formally verified Brainfuck compiler in Coq using Hoare logic.
 
 ## Stages
 
-- [`Token`](Token.v): Flat lexical tokens
-- [`AST`](AST.v): Inductive loops
-- [`ComIR`](ComIR.v): Combined sequences of `>`, `<`, `+`, and `-`
-- [`RelIR`](RelIR.v): Relative-positioned cell offsets
+- [`Token`](./theories/Token.v): Flat lexical tokens
+- [`AST`](./theories/AST.v): Inductive loops
+- [`ComIR`](./theories/ComIR.v): Combined sequences of `>`, `<`, `+`, and `-`
+- [`RelIR`](./theories/RelIR.v): Relative-positioned cell offsets
 
 ## Installation
 
